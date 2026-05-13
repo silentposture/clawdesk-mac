@@ -1,0 +1,235 @@
+import { spawnSync } from "node:child_process";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+const cwd = process.cwd();
+const reportDir = path.join(cwd, "artifacts", "qa-loop");
+const guardedPorts = [18890, 18790, 5173, 19120, 19130, 19140];
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function safeName(value) {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "-");
+}
+
+function runStep(step) {
+  const startedAt = nowIso();
+  const startedMs = Date.now();
+  const result = spawnSync(step.cmd, step.args, {
+    cwd,
+    encoding: "utf8",
+    env: { ...process.env, ...(step.env || {}) },
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: step.timeoutMs ?? 420000,
+  });
+  const endedAt = nowIso();
+  const durationMs = Date.now() - startedMs;
+  const stdout = result.stdout || "";
+  const stderr = result.stderr || "";
+  const output = `${stdout}\n${stderr}`.trim();
+  const ok = result.status === 0;
+
+  return {
+    name: step.name,
+    command: `${step.cmd} ${step.args.join(" ")}`,
+    startedAt,
+    endedAt,
+    durationMs,
+    ok,
+    status: result.status ?? null,
+    signal: result.signal ?? null,
+    output,
+  };
+}
+
+function cleanupPorts() {
+  for (const port of guardedPorts) {
+    const finder = spawnSync("bash", ["-lc", `lsof -ti tcp:${port}`], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const pids = (finder.stdout || "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    for (const pid of pids) {
+      spawnSync("kill", ["-9", pid], {
+        cwd,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    }
+  }
+}
+
+function classifyIssue(stepResult) {
+  if (stepResult.ok) return null;
+  if (stepResult.name === "release-preflight-strict") {
+    const text = stepResult.output;
+    const externalMarkers = [
+      "缺少：CLAWDESK_GATEWAY_BASE_URL",
+      "缺少：APPLE_TEAM_ID",
+      "缺少 APPLE_APP_SPECIFIC_PASSWORD",
+      "找不到 Developer ID Application",
+    ];
+    const onlyExternal = externalMarkers.some((marker) => text.includes(marker));
+    if (onlyExternal) {
+      return {
+        severity: "Major",
+        category: "ExternalDependency",
+        title: "Production strict preflight blocked by missing secrets/certificates",
+        detail:
+          "此失敗符合預期，屬於外部前置條件未就緒（production secrets、Apple signing/notarization、Developer ID）。",
+      };
+    }
+  }
+
+  return {
+    severity: "Blocker",
+    category: "ProgramDefect",
+    title: `${stepResult.name} failed`,
+    detail: "命令執行失敗，需修正程式或測試流程後重跑。",
+  };
+}
+
+async function checkWorkflowGate() {
+  const workflowPath = path.join(cwd, ".github", "workflows", "release-macos.yml");
+  const text = await fs.readFile(workflowPath, "utf8");
+  const hasVerifyJob = /\n\s*verify:\n/.test(text);
+  const hasBuildJob = /\n\s*build-sign-notarize:\n/.test(text);
+  const hasNeedsVerify = /build-sign-notarize:[\s\S]*?\n\s*needs:\s*[\r\n]+\s*-\s*verify/.test(text);
+  return {
+    ok: hasVerifyJob && hasBuildJob && hasNeedsVerify,
+    detail: hasVerifyJob && hasBuildJob && hasNeedsVerify
+      ? "verify gate 順序正確，build-sign-notarize 依賴 verify。"
+      : "workflow gate 順序不正確或缺少 needs: verify。",
+  };
+}
+
+function toMarkdown(report) {
+  const lines = [];
+  lines.push("# QA Cycle Report");
+  lines.push("");
+  lines.push(`- 日期：${report.createdAt}`);
+  lines.push(`- 平台：macOS-first`);
+  lines.push(`- 最終判定：${report.result}`);
+  lines.push(`- 全部步驟：${report.summary.totalSteps}，成功：${report.summary.passedSteps}，失敗：${report.summary.failedSteps}`);
+  lines.push("");
+  lines.push("## 問題清單");
+  if (report.issues.length === 0) {
+    lines.push("");
+    lines.push("- 無 Blocker/Major 問題。");
+  } else {
+    lines.push("");
+    for (const issue of report.issues) {
+      lines.push(`- [${issue.severity}] ${issue.category} - ${issue.title}`);
+      lines.push(`  - 說明：${issue.detail}`);
+      lines.push(`  - 對應步驟：${issue.step}`);
+    }
+  }
+  lines.push("");
+  lines.push("## CI 發佈鏈路檢查");
+  lines.push("");
+  lines.push(`- release-macos gate：${report.workflowGate.ok ? "PASS" : "FAIL"}`);
+  lines.push(`- 說明：${report.workflowGate.detail}`);
+  lines.push("");
+  lines.push("## 步驟結果");
+  lines.push("");
+  for (const step of report.steps) {
+    lines.push(`- ${step.name}: ${step.ok ? "PASS" : "FAIL"} (${step.durationMs} ms)`);
+  }
+  lines.push("");
+  lines.push("## 結論");
+  lines.push("");
+  if (report.result === "PASS") {
+    lines.push("- 本機可控範圍測試全綠；僅剩外部依賴（若有）待補齊。");
+  } else {
+    lines.push("- 仍有 Blocker/流程錯誤，需先修復再進入下一輪。");
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+async function main() {
+  await fs.mkdir(reportDir, { recursive: true });
+
+  const steps = [
+    { name: "npm-test", cmd: "npm", args: ["test"], timeoutMs: 180000 },
+    { name: "npm-build", cmd: "npm", args: ["run", "build"], timeoutMs: 180000 },
+    { name: "verify-mvp", cmd: "npm", args: ["run", "verify:mvp"], timeoutMs: 180000 },
+    { name: "verify-backend", cmd: "npm", args: ["run", "verify:backend"], timeoutMs: 180000 },
+    { name: "verify-backend-sim", cmd: "npm", args: ["run", "verify:backend:sim"], timeoutMs: 180000 },
+    { name: "verify-backend-production", cmd: "npm", args: ["run", "verify:backend:production"], timeoutMs: 180000 },
+    { name: "verify-production-gateway-sim", cmd: "npm", args: ["run", "verify:production-gateway:sim"], timeoutMs: 180000 },
+    { name: "smoke-gui-prod", cmd: "npm", args: ["run", "smoke:gui:prod"], timeoutMs: 300000, cleanupBefore: true, cleanupAfter: true },
+    { name: "smoke-tauri-app", cmd: "npm", args: ["run", "smoke:tauri:app"], timeoutMs: 360000, cleanupBefore: true, cleanupAfter: true },
+    { name: "smoke-dmg", cmd: "npm", args: ["run", "smoke:dmg"], timeoutMs: 420000, cleanupBefore: true, cleanupAfter: true },
+    { name: "cargo-test", cmd: "cargo", args: ["test", "--manifest-path", "src-tauri/Cargo.toml"], timeoutMs: 300000 },
+    { name: "release-preflight-production", cmd: "npm", args: ["run", "release:preflight:production"], timeoutMs: 120000 },
+    { name: "release-preflight-strict", cmd: "npm", args: ["run", "release:preflight:production:strict"], timeoutMs: 120000 },
+    { name: "release-guard", cmd: "npm", args: ["run", "release:guard"], timeoutMs: 120000 },
+  ];
+
+  const results = [];
+  const issues = [];
+  for (const step of steps) {
+    console.log(`\n=== ${step.name} ===`);
+    if (step.cleanupBefore) cleanupPorts();
+    const outcome = runStep(step);
+    if (outcome.output) console.log(outcome.output);
+    if (step.cleanupAfter) cleanupPorts();
+    results.push(outcome);
+    const issue = classifyIssue(outcome);
+    if (issue) issues.push({ ...issue, step: step.name });
+  }
+
+  const workflowGate = await checkWorkflowGate();
+  if (!workflowGate.ok) {
+    issues.push({
+      severity: "Blocker",
+      category: "ProgramDefect",
+      title: "release-macos workflow gate check failed",
+      detail: workflowGate.detail,
+      step: "workflow-gate-check",
+    });
+  }
+
+  const hasBlocker = issues.some((item) => item.severity === "Blocker");
+  const summary = {
+    totalSteps: results.length,
+    passedSteps: results.filter((item) => item.ok).length,
+    failedSteps: results.filter((item) => !item.ok).length,
+  };
+
+  const report = {
+    createdAt: nowIso(),
+    result: hasBlocker ? "FAIL" : "PASS",
+    summary,
+    workflowGate,
+    issues,
+    steps: results.map((item) => ({
+      name: item.name,
+      command: item.command,
+      ok: item.ok,
+      status: item.status,
+      signal: item.signal,
+      durationMs: item.durationMs,
+      startedAt: item.startedAt,
+      endedAt: item.endedAt,
+    })),
+  };
+
+  const stamp = safeName(nowIso());
+  const jsonPath = path.join(reportDir, `${stamp}-qa-full-cycle.json`);
+  const mdPath = path.join(cwd, "QA_CYCLE_REPORT.md");
+  await fs.writeFile(jsonPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  await fs.writeFile(mdPath, toMarkdown(report), "utf8");
+
+  console.log(`\nQA full-cycle JSON report: ${jsonPath}`);
+  console.log(`QA markdown report: ${mdPath}`);
+  console.log(`Result: ${report.result}`);
+  if (report.result !== "PASS") process.exitCode = 1;
+}
+
+await main();

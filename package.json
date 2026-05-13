@@ -35,6 +35,7 @@
     "qa:release:burn-in": "node scripts/qa-loop.mjs --production-smoke --cycles 2 --continue-on-failure",
     "qa:release:app": "node scripts/qa-loop.mjs --production-smoke --tauri-app-smoke",
     "qa:release:dmg": "node scripts/qa-loop.mjs --production-smoke --tauri-app-smoke --dmg-smoke",
+    "qa:full-cycle": "node scripts/qa-full-cycle.mjs",
     "qa:quick-attach": "node scripts/qa-loop.mjs --quick --smoke-connect-only",
     "qa:attach": "node scripts/qa-loop.mjs --cycles 1 --smoke-connect-only --skip-unit --skip-build --skip-verify-mvp --skip-verify-backend --skip-verify-backend-sim --skip-cargo-test",
     "qa:attach:quick": "npm run qa:attach",

@@ -308,3 +308,36 @@
   - backend production smoke report 與 QA report 未包含測試 Paddle/Keygen secret 或 public/private key 原文。
 - 剩餘事項：
   - production adapter 目前已能驗證合約、安全失敗與簽章流程；真正上線仍需實作 Paddle/Keygen live API credential 管理、OIDC callback 驗證、部署環境與監控。
+
+### 迭代 20 全自動 QA 閉環（2026-05-13）
+
+- 需求：執行「單輪全綠 + 問題清單」完整閉環，涵蓋本機核心功能與 CI 發佈鏈路檢查，並輸出統一報告。
+- 修正：
+  - 新增 `scripts/qa-full-cycle.mjs` 與 `npm run qa:full-cycle`。
+  - 編排完整鏈路：`npm test`、`npm run build`、`verify:*`、`smoke:*`、`cargo test`、`release:preflight:production`、`release:preflight:production:strict`、`release:guard`。
+  - 新增 workflow gate 檢查：確認 `.github/workflows/release-macos.yml` 的 `build-sign-notarize` 依賴 `verify`。
+  - 修正首輪阻塞：為每個 step 加入 timeout，並在 GUI/Tauri/DMG smoke 前後加入 guarded ports cleanup，避免卡死。
+  - 新增統一交付：
+    - `QA_CYCLE_REPORT.md`
+    - `artifacts/qa-loop/2026-05-13T15-14-49.553Z-qa-full-cycle.json`
+- 問題分級：
+  - `Blocker`：首輪在 `smoke-gui-prod` 長時間無輸出，根因為 orchestration 缺少 timeout/cleanup；已修正後重跑全綠。
+  - `Major`：`release-preflight-strict` 失敗，屬外部依賴未就緒（production secrets、Apple signing/notarization、Developer ID），非程式缺陷。
+- 最終驗證結果（修正後重跑）：
+  - `npm test`：通過（29 files / 96 tests）。
+  - `npm run build`：通過。
+  - `npm run verify:mvp`：通過（22 checks）。
+  - `npm run verify:backend`：通過（3 checks）。
+  - `npm run verify:backend:sim`：通過（13 checks）。
+  - `npm run verify:backend:production`：通過。
+  - `npm run verify:production-gateway:sim`：通過。
+  - `npm run smoke:gui:prod`：通過（8/8 checks）。
+  - `npm run smoke:tauri:app`：通過。
+  - `npm run smoke:dmg`：通過。
+  - `cargo test --manifest-path src-tauri/Cargo.toml`：通過（15 tests）。
+  - `npm run release:preflight:production`：`WARN`（外部依賴缺口）。
+  - `npm run release:preflight:production:strict`：`FAIL`（預期，外部依賴未就緒）。
+  - `npm run release:guard`：通過（`mock-candidate-ready`）。
+- 收斂判定：
+  - 本機可控範圍全綠。
+  - 剩餘風險僅為外部前置（secrets/憑證），符合本輪完成條件。
