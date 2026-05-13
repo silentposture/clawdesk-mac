@@ -341,3 +341,29 @@
 - 收斂判定：
   - 本機可控範圍全綠。
   - 剩餘風險僅為外部前置（secrets/憑證），符合本輪完成條件。
+
+### 迭代 21 全自動優化循環（2026-05-13）
+
+- 需求：持續全自動優化 QA 循環效能，在不降低覆蓋率前提下縮短整輪時間。
+- 修正：
+  - `scripts/qa-full-cycle.mjs` 新增單次 `tauri-build-m4` 步驟，取代重複建置。
+  - `smoke-tauri-app` 改為 `node scripts/smoke-tauri-app.mjs --no-build`。
+  - `smoke-dmg` 改為 `node scripts/smoke-dmg.mjs --no-build`。
+  - 保持 GUI smoke、verify、preflight、release guard 原本覆蓋不變。
+- 驗證結果：
+  - `npm run qa:full-cycle`：通過，報告 `artifacts/qa-loop/2026-05-13T15-22-36.868Z-qa-full-cycle.json`。
+  - `npm run release:summary`：通過，更新 `artifacts/release-summary/latest-release-summary.md`，overall `WARN`（僅外部依賴）。
+- 耗時對比（同一套 full-cycle）：
+  - 優化前：
+    - `smoke-tauri-app`: 56,802 ms
+    - `smoke-dmg`: 231,628 ms
+  - 優化後：
+    - `tauri-build-m4`: 107,141 ms（合併建置）
+    - `smoke-tauri-app --no-build`: 1,896 ms
+    - `smoke-dmg --no-build`: 3,825 ms
+  - 結果：原本兩個 smoke 合計約 288s，優化後（建置+兩 smoke）約 113s，節省約 175s（約 60%）。
+- 問題分級：
+  - `Major`：`release-preflight-strict` 仍為預期失敗，屬外部依賴（production secrets、Apple signing/notarization、Developer ID）未就緒。
+- 收斂判定：
+  - 本機可控範圍全綠。
+  - 覆蓋率不變下完成循環效能優化。

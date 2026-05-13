@@ -1,9 +1,9 @@
 # QA Cycle Report
 
-- 日期：2026-05-13T15:14:49.553Z
+- 日期：2026-05-13T15:22:36.868Z
 - 平台：macOS-first
 - 最終判定：PASS
-- 全部步驟：14，成功：13，失敗：1
+- 全部步驟：15，成功：14，失敗：1
 
 ## 問題清單
 
@@ -18,20 +18,21 @@
 
 ## 步驟結果
 
-- npm-test: PASS (1315 ms)
-- npm-build: PASS (3040 ms)
-- verify-mvp: PASS (1999 ms)
-- verify-backend: PASS (2417 ms)
-- verify-backend-sim: PASS (675 ms)
-- verify-backend-production: PASS (1877 ms)
-- verify-production-gateway-sim: PASS (1709 ms)
-- smoke-gui-prod: PASS (59250 ms)
-- smoke-tauri-app: PASS (56802 ms)
-- smoke-dmg: PASS (231628 ms)
-- cargo-test: PASS (3186 ms)
-- release-preflight-production: PASS (2712 ms)
-- release-preflight-strict: FAIL (1727 ms)
-- release-guard: PASS (1108 ms)
+- npm-test: PASS (2843 ms)
+- npm-build: PASS (7060 ms)
+- verify-mvp: PASS (2185 ms)
+- verify-backend: PASS (3368 ms)
+- verify-backend-sim: PASS (1360 ms)
+- verify-backend-production: PASS (2323 ms)
+- verify-production-gateway-sim: PASS (2614 ms)
+- tauri-build-m4: PASS (107141 ms)
+- smoke-gui-prod: PASS (60608 ms)
+- smoke-tauri-app: PASS (1896 ms)
+- smoke-dmg: PASS (3825 ms)
+- cargo-test: PASS (1052 ms)
+- release-preflight-production: PASS (574 ms)
+- release-preflight-strict: FAIL (398 ms)
+- release-guard: PASS (320 ms)
 
 ## 結論
 
