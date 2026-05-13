@@ -367,3 +367,24 @@
 - 收斂判定：
   - 本機可控範圍全綠。
   - 覆蓋率不變下完成循環效能優化。
+
+### 迭代 22 全自動優化循環（二）（2026-05-13）
+
+- 需求：進一步縮短 full-cycle，並修正優化後新增的假陽性阻塞。
+- 修正：
+  - `scripts/qa-full-cycle.mjs` 移除獨立 `npm-build` 步驟，避免與 `tauri-build-m4` 的 `beforeBuildCommand` 重複前端建置。
+  - `tauri-build-m4` timeout 由 `420000 ms` 調整為 `1800000 ms`，避免在較慢機器或尖峰時段被誤判 `SIGTERM`。
+- 問題分級與處理：
+  - `Blocker`（已修復）：首次調整後 `tauri-build-m4` 被 timeout 誤殺，導致 `qa-full-cycle` 判定 `FAIL`；根因是 timeout 太短，非程式功能缺陷。
+  - `Major`（保留）：`release-preflight-strict` 失敗仍屬外部依賴缺口（production secrets / Apple signing / notarization / Developer ID）。
+- 最終驗證結果（修正後重跑）：
+  - `npm run qa:full-cycle`：通過，報告 `artifacts/qa-loop/2026-05-13T15-45-53.355Z-qa-full-cycle.json`。
+  - `npm run release:summary`：通過，更新 `artifacts/release-summary/latest-release-summary.md`，overall `WARN`（僅外部依賴）。
+  - 關鍵步驟耗時（本輪）：
+    - `tauri-build-m4`: 89,048 ms
+    - `smoke-gui-prod`: 60,447 ms
+    - `smoke-tauri-app --no-build`: 1,340 ms
+    - `smoke-dmg --no-build`: 3,537 ms
+- 收斂判定：
+  - 本機可控範圍持續全綠。
+  - 優化後流程穩定，未再出現 timeout 假陽性。

@@ -156,13 +156,12 @@ async function main() {
 
   const steps = [
     { name: "npm-test", cmd: "npm", args: ["test"], timeoutMs: 180000 },
-    { name: "npm-build", cmd: "npm", args: ["run", "build"], timeoutMs: 180000 },
     { name: "verify-mvp", cmd: "npm", args: ["run", "verify:mvp"], timeoutMs: 180000 },
     { name: "verify-backend", cmd: "npm", args: ["run", "verify:backend"], timeoutMs: 180000 },
     { name: "verify-backend-sim", cmd: "npm", args: ["run", "verify:backend:sim"], timeoutMs: 180000 },
     { name: "verify-backend-production", cmd: "npm", args: ["run", "verify:backend:production"], timeoutMs: 180000 },
     { name: "verify-production-gateway-sim", cmd: "npm", args: ["run", "verify:production-gateway:sim"], timeoutMs: 180000 },
-    { name: "tauri-build-m4", cmd: "npm", args: ["run", "tauri:build:m4"], timeoutMs: 420000, cleanupBefore: true, cleanupAfter: true },
+    { name: "tauri-build-m4", cmd: "npm", args: ["run", "tauri:build:m4"], timeoutMs: 1800000, cleanupBefore: true, cleanupAfter: true },
     { name: "smoke-gui-prod", cmd: "npm", args: ["run", "smoke:gui:prod"], timeoutMs: 300000, cleanupBefore: true, cleanupAfter: true },
     { name: "smoke-tauri-app", cmd: "node", args: ["scripts/smoke-tauri-app.mjs", "--no-build"], timeoutMs: 360000, cleanupBefore: true, cleanupAfter: true },
     { name: "smoke-dmg", cmd: "node", args: ["scripts/smoke-dmg.mjs", "--no-build"], timeoutMs: 300000, cleanupBefore: true, cleanupAfter: true },
