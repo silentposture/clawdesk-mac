@@ -2,6 +2,11 @@
 
 本文件定義 ClawDesk 從 mock release candidate 進入 production build 的最小安全流程。重點是先建立可重複檢查的 release gate，再接入正式 Paddle、Keygen、SSO、Apple signing 與 notarization。
 
+CI workflow 參考：
+
+- [release-macos workflow](/Users/huangkuoling/Documents/New%20project/.github/workflows/release-macos.yml)
+- [CI secrets reference](/Users/huangkuoling/Documents/New%20project/docs/ci-secrets-reference.md)
+
 ## 原則
 
 - production credential 只存在於 CI secret store 或本機 shell session，不寫入 repo。

@@ -1,0 +1,182 @@
+name: release-macos
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag, example: v0.1.0"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-macos-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: verify-and-guard
+    runs-on: macos-14
+    env:
+      CLAWDESK_RELEASE_CHANNEL: production
+      CLAWDESK_GATEWAY_BASE_URL: ${{ secrets.CLAWDESK_GATEWAY_BASE_URL }}
+      PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+      PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
+      KEYGEN_ACCOUNT_ID: ${{ secrets.KEYGEN_ACCOUNT_ID }}
+      KEYGEN_PRODUCT_ID: ${{ secrets.KEYGEN_PRODUCT_ID }}
+      KEYGEN_API_TOKEN: ${{ secrets.KEYGEN_API_TOKEN }}
+      KEYGEN_SIGNING_PUBLIC_KEY: ${{ secrets.KEYGEN_SIGNING_PUBLIC_KEY }}
+      CLAWDESK_SSO_ISSUER_URL: ${{ secrets.CLAWDESK_SSO_ISSUER_URL }}
+      CLAWDESK_SSO_CLIENT_ID: ${{ secrets.CLAWDESK_SSO_CLIENT_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_KEYCHAIN_PROFILE: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Backend verify
+        run: npm run verify:backend && npm run verify:backend:sim && npm run verify:backend:production
+
+      - name: Gateway verify
+        run: npm run verify:mvp && npm run verify:production-gateway:sim
+
+      - name: GUI smoke (production mode)
+        run: npm run smoke:gui:prod
+
+      - name: Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Production preflight strict
+        run: npm run release:preflight:production:strict
+
+      - name: Release guard strict
+        run: npm run release:guard:strict
+
+      - name: Upload verify artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-artifacts
+          path: artifacts/**
+          if-no-files-found: ignore
+
+  build-sign-notarize:
+    name: build-sign-notarize
+    runs-on: macos-14
+    needs:
+      - verify
+    env:
+      CLAWDESK_RELEASE_CHANNEL: production
+      CLAWDESK_BUILD_PROFILE: production
+      CLAWDESK_GATEWAY_BASE_URL: ${{ secrets.CLAWDESK_GATEWAY_BASE_URL }}
+      PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+      PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
+      KEYGEN_ACCOUNT_ID: ${{ secrets.KEYGEN_ACCOUNT_ID }}
+      KEYGEN_PRODUCT_ID: ${{ secrets.KEYGEN_PRODUCT_ID }}
+      KEYGEN_API_TOKEN: ${{ secrets.KEYGEN_API_TOKEN }}
+      KEYGEN_SIGNING_PUBLIC_KEY: ${{ secrets.KEYGEN_SIGNING_PUBLIC_KEY }}
+      CLAWDESK_SSO_ISSUER_URL: ${{ secrets.CLAWDESK_SSO_ISSUER_URL }}
+      CLAWDESK_SSO_CLIENT_ID: ${{ secrets.CLAWDESK_SSO_CLIENT_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_KEYCHAIN_PROFILE: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
+      APPLE_CERT_BASE64: ${{ secrets.APPLE_CERT_BASE64 }}
+      APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Import Apple certificate (optional)
+        if: ${{ env.APPLE_CERT_BASE64 != '' && env.APPLE_CERT_PASSWORD != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH="$RUNNER_TEMP/clawdesk-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+          echo "$APPLE_CERT_BASE64" | base64 --decode > "$RUNNER_TEMP/clawdesk-cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/clawdesk-cert.p12" -k "$KEYCHAIN_PATH" -P "$APPLE_CERT_PASSWORD" -A -T /usr/bin/codesign
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Production preflight strict
+        run: npm run release:preflight:production:strict
+
+      - name: Production guard strict
+        run: npm run release:guard:strict
+
+      - name: Build production app and dmg
+        run: npm run tauri:build:prod:dmg
+
+      - name: Smoke packaged app
+        run: npm run smoke:tauri:app
+
+      - name: Smoke dmg
+        run: npm run smoke:dmg
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find src-tauri/target/aarch64-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
+          DMG_PATH="$(find src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)"
+          shasum -a 256 "$APP_PATH/Contents/MacOS/openclaw-desktop" > app.sha256
+          shasum -a 256 "$DMG_PATH" > dmg.sha256
+
+      - name: Upload release bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: clawdesk-macos-bundle
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            app.sha256
+            dmg.sha256
+
+      - name: Upload release diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-diagnostics
+          path: artifacts/**
+          if-no-files-found: ignore
