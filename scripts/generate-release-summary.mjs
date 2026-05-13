@@ -32,6 +32,24 @@ async function newestJsonIn(dirPath) {
   };
 }
 
+async function newestJsonReports(dirPath, limit = 2) {
+  if (!(await exists(dirPath))) return [];
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  const files = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+    .map((entry) => entry.name)
+    .sort()
+    .slice(-limit);
+
+  const reports = [];
+  for (const name of files) {
+    const filePath = path.join(dirPath, name);
+    const raw = await fs.readFile(filePath, "utf8");
+    reports.push({ name, filePath, data: JSON.parse(raw) });
+  }
+  return reports;
+}
+
 function rel(filePath) {
   return path.relative(cwd, filePath);
 }
@@ -142,7 +160,47 @@ function renderMarkdown(payload) {
     lines.push(`  - detail: ${item.detail}`);
     if (item.path) lines.push(`  - report: ${item.path}`);
   }
+  if (payload.timingTrend) {
+    lines.push("");
+    lines.push("## Timing Trend");
+    lines.push("");
+    lines.push(`- latestFullCycleMs: ${payload.timingTrend.latestFullCycleMs}`);
+    lines.push(`- previousFullCycleMs: ${payload.timingTrend.previousFullCycleMs ?? "n/a"}`);
+    lines.push(`- deltaMs: ${payload.timingTrend.deltaMs ?? "n/a"}`);
+    lines.push(`- improved: ${payload.timingTrend.improved ?? "n/a"}`);
+    lines.push("- slowestThree:");
+    for (const step of payload.timingTrend.slowestThree) {
+      lines.push(`  - ${step.name}: ${step.durationMs} ms`);
+    }
+  }
   return `${lines.join("\n")}\n`;
+}
+
+function fullCycleDuration(report) {
+  const steps = Array.isArray(report?.data?.steps) ? report.data.steps : [];
+  return steps.reduce((sum, step) => sum + Number(step.durationMs || 0), 0);
+}
+
+function timingTrendFromReports(reports) {
+  const latest = reports[reports.length - 1];
+  if (!latest) return null;
+  const previous = reports.length > 1 ? reports[reports.length - 2] : null;
+  const latestFullCycleMs = fullCycleDuration(latest);
+  const previousFullCycleMs = previous ? fullCycleDuration(previous) : null;
+  const slowestThree = (latest.data.steps || [])
+    .map((step) => ({ name: step.name, durationMs: Number(step.durationMs || 0) }))
+    .sort((a, b) => b.durationMs - a.durationMs)
+    .slice(0, 3);
+
+  return {
+    latestReport: rel(latest.filePath),
+    previousReport: previous ? rel(previous.filePath) : null,
+    latestFullCycleMs,
+    previousFullCycleMs,
+    deltaMs: previousFullCycleMs === null ? null : latestFullCycleMs - previousFullCycleMs,
+    improved: previousFullCycleMs === null ? null : latestFullCycleMs < previousFullCycleMs,
+    slowestThree,
+  };
 }
 
 async function main() {
@@ -175,6 +233,7 @@ async function main() {
     loaded[key] = await newestJsonIn(dirPath);
   }
   loaded["preflight-strict"] = strictReport;
+  const qaReports = await newestJsonReports(dirs["qa-loop"], 2);
 
   const order = [
     "qa-loop",
@@ -194,6 +253,7 @@ async function main() {
     generatedAt: new Date().toISOString(),
     overall,
     items,
+    timingTrend: timingTrendFromReports(qaReports),
   };
 
   await fs.mkdir(outputDir, { recursive: true });

@@ -890,6 +890,7 @@ const mcpConnectors = [
   {
     id: "microsoft-office",
     name: "Microsoft 365 文書工具",
+    tier: "business",
     vendor: "Microsoft",
     status: "available",
     transport: "mock",
@@ -989,6 +990,7 @@ const mcpConnectors = [
   {
     id: "google-workspace",
     name: "Google Workspace",
+    tier: "business",
     vendor: "Google",
     status: "available",
     transport: "mock",
@@ -1067,6 +1069,7 @@ const mcpConnectors = [
   {
     id: "browser-vision",
     name: "瀏覽器與螢幕 GUI",
+    tier: "business",
     vendor: "Local",
     status: "available",
     transport: "mock",
@@ -1101,6 +1104,7 @@ const mcpConnectors = [
   {
     id: "developer-tools",
     name: "程式開發工具",
+    tier: "engineering",
     vendor: "Developer",
     status: "available",
     transport: "mock",
@@ -1167,6 +1171,7 @@ const mcpConnectors = [
   {
     id: "engineering-tools",
     name: "工程與設計軟體",
+    tier: "engineering",
     vendor: "Engineering",
     status: "available",
     transport: "mock",
@@ -1217,6 +1222,7 @@ const mcpConnectors = [
   {
     id: "cloud-services",
     name: "雲端服務",
+    tier: "engineering",
     vendor: "Cloud",
     status: "available",
     transport: "mock",
@@ -1475,13 +1481,51 @@ let licenseStatus = {
 };
 
 const pricingPlans = [
-  { id: "hobby", name: "Hobby", priceUsd: 0, cadence: "free" },
-  { id: "pro-monthly", name: "Pro Monthly", priceUsd: 19, cadence: "monthly" },
-  { id: "pro-yearly", name: "Pro Yearly", priceUsd: 190, cadence: "yearly" },
-  { id: "lifetime-local", name: "Lifetime Local", priceUsd: 249, cadence: "one-time", supportRenewalUsd: 75 },
-  { id: "team", name: "Team", priceUsd: 40, cadence: "monthly-per-seat" },
-  { id: "enterprise", name: "Enterprise", priceUsd: 50000, cadence: "contract" },
-  { id: "byok-managed", name: "BYOK Managed", priceUsd: 30, cadence: "monthly-instance" },
+  {
+    id: "free-trial",
+    name: "Free Trial",
+    priceUsd: 0,
+    cadence: "trial",
+    description: "本機安全沙盒、手動授權與基本桌面工作流試用。",
+  },
+  {
+    id: "monthly",
+    name: "Monthly",
+    priceUsd: 9,
+    cadence: "monthly",
+    description: "桌面 AI 工作平台月繳方案；不販售模型算力，模型由使用者帳號或 API 供應。",
+  },
+  {
+    id: "yearly",
+    name: "Yearly",
+    priceUsd: 79,
+    cadence: "yearly",
+    description: "桌面 AI 工作平台年繳方案，含支援更新資格。",
+  },
+  {
+    id: "lifetime",
+    name: "Lifetime",
+    priceUsd: 99,
+    cadence: "one-time",
+    supportUpdatesMonths: 12,
+    description: "永久本機功能，含 12 個月支援更新。",
+  },
+  {
+    id: "early-bird",
+    name: "Early Bird",
+    priceUsd: 69,
+    cadence: "one-time",
+    supportUpdatesMonths: 12,
+    description: "早鳥一次買斷名額，適合 side-project 商業 Beta 內測。",
+  },
+  {
+    id: "update-maintenance",
+    name: "Update Maintenance",
+    priceUsd: 29,
+    cadence: "maintenance",
+    supportUpdatesMonths: 12,
+    description: "買斷版支援更新續費，延長可安裝新版本資格一年。",
+  },
 ];
 ensureSeedIdentityUsers();
 
@@ -1634,46 +1678,121 @@ let agentProfiles = [
     name: "個人助理",
     role: "整理日常任務、提醒與跨工具協作。",
     model: "ChatGPT Pro / local adapter",
+    modelProvider: "chatgpt-pro",
     workspaceId: "desktop-mvp",
     toolPermissions: ["calendar.read", "mail.draft", "file.read"],
     knowledgeBaseIds: ["kb-drive-sales"],
     memoryScope: "private",
     learningMode: "rehearse-only",
+    allowedProjectFolders: ["~/ClawDesk/projects/personal"],
+    sharedKnowledge: false,
   },
   {
     id: "document-assistant",
     name: "文書助理",
     role: "處理 Word、Excel、PowerPoint 與 PDF 文件。",
     model: "ChatGPT Pro / document adapter",
+    modelProvider: "chatgpt-pro",
     workspaceId: "docs-brief",
     toolPermissions: ["office.read", "office.write-with-approval"],
     knowledgeBaseIds: ["kb-drive-sales"],
     memoryScope: "project",
     learningMode: "observe",
+    allowedProjectFolders: ["~/ClawDesk/projects/docs-brief"],
+    sharedKnowledge: false,
   },
   {
     id: "automation-assistant",
     name: "自動化助理",
     role: "建立排程、工作流與 MCP 工具串接。",
     model: "ChatGPT Pro / workflow adapter",
+    modelProvider: "chatgpt-pro",
     workspaceId: "desktop-mvp",
     toolPermissions: ["workflow.run-with-approval", "mcp.connect"],
     knowledgeBaseIds: ["kb-db-salescrm"],
     memoryScope: "project",
     learningMode: "rehearse-only",
+    allowedProjectFolders: ["~/ClawDesk/projects/desktop-mvp"],
+    sharedKnowledge: false,
   },
   {
     id: "research-assistant",
     name: "研究助理",
     role: "整理網路資料、來源與長篇 Context。",
     model: "ChatGPT Pro / research adapter",
+    modelProvider: "chatgpt-pro",
     workspaceId: "live-canvas",
     toolPermissions: ["browser.read", "knowledge.write"],
     knowledgeBaseIds: ["kb-image-corpus"],
     memoryScope: "shared",
     learningMode: "off",
+    allowedProjectFolders: ["~/ClawDesk/projects/research"],
+    sharedKnowledge: true,
   },
 ];
+
+let agentTasks = [
+  {
+    id: "task-orchestrator-brief",
+    title: "整理本週商務文件並產生工作流草稿",
+    orchestrator: "automation-assistant",
+    assignedAgentIds: ["document-assistant", "research-assistant"],
+    status: "orchestrator",
+    risk: "medium",
+    projectFolder: "~/ClawDesk/projects/docs-brief",
+  },
+  {
+    id: "task-waiting-approval",
+    title: "預演 Outlook 回覆草稿與 OneDrive 搜尋",
+    orchestrator: "personal-assistant",
+    assignedAgentIds: ["personal-assistant", "document-assistant"],
+    status: "waiting-approval",
+    risk: "medium",
+    projectFolder: "~/ClawDesk/projects/personal",
+  },
+  {
+    id: "task-completed-memory",
+    title: "更新 pinned facts 與長期記憶摘要",
+    orchestrator: "research-assistant",
+    assignedAgentIds: ["research-assistant"],
+    status: "completed",
+    risk: "low",
+    projectFolder: "~/ClawDesk/projects/research",
+  },
+];
+
+const desktopAccessibilityStatus = {
+  platform: "macOS",
+  trusted: "unknown",
+  canReadActiveWindow: false,
+  setupHint: "系統設定 > 隱私權與安全性 > 輔助使用，允許 ClawDesk 讀取桌面元素。",
+  settingsUrl: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+  checkedAt: "2026-05-14T00:00:00.000Z",
+};
+
+const desktopWindowSnapshot = {
+  appName: "ClawDesk Preview",
+  windowTitle: "桌面操作預演",
+  processId: 0,
+  capturedAt: "2026-05-14T00:00:00.000Z",
+  fallback: "ax-tree",
+  elements: [
+    {
+      id: "ax-submit",
+      role: "AXButton",
+      label: "預覽動作",
+      bounds: { x: 420, y: 560, width: 112, height: 32 },
+      enabled: true,
+    },
+    {
+      id: "ax-target",
+      role: "AXTextField",
+      label: "目標路徑 / 資源",
+      bounds: { x: 180, y: 498, width: 360, height: 34 },
+      enabled: true,
+    },
+  ],
+};
 
 let ergonomicsChecks = [
   {
@@ -1747,6 +1866,7 @@ function snapshotState() {
     contextStatus,
     enterpriseKnowledgeSources,
     agentProfiles,
+    agentTasks,
     ergonomicsChecks,
     diagnosticReports,
     auditEvents,
@@ -1775,6 +1895,7 @@ function applyPersistedState(state) {
   if (state.contextStatus) contextStatus = state.contextStatus;
   mergeArray(enterpriseKnowledgeSources, state.enterpriseKnowledgeSources);
   if (Array.isArray(state.agentProfiles)) agentProfiles = state.agentProfiles;
+  if (Array.isArray(state.agentTasks)) agentTasks = state.agentTasks;
   if (Array.isArray(state.ergonomicsChecks)) ergonomicsChecks = state.ergonomicsChecks;
   mergeArray(diagnosticReports, state.diagnosticReports);
   if (Array.isArray(state.auditEvents)) auditEvents = state.auditEvents.slice(0, 500);
@@ -2451,6 +2572,35 @@ function findAgent(agentId) {
   return agentProfiles.find((agent) => agent.id === agentId);
 }
 
+function rehearseDesktopAction(body = {}) {
+  const action = String(body.action ?? "read");
+  const targetLabel = String(body.targetLabel ?? "預覽動作");
+  const risk = String(body.risk ?? (action === "read" ? "low" : "medium"));
+  const highRisk = risk === "high";
+  const observedElement = desktopWindowSnapshot.elements.find((element) => element.label === targetLabel) ?? null;
+  return {
+    actionId: `desktop-${action}-${targetLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    stage: highRisk ? "authorize" : "rehearse",
+    risk,
+    executable: !highRisk,
+    requiresHumanApproval: action !== "read" || risk !== "low",
+    summary: `觀察到 ${desktopWindowSnapshot.appName} / ${desktopWindowSnapshot.windowTitle}，預演 ${action} 於「${targetLabel}」。`,
+    blockedReason: highRisk ? "v0.2 不自動執行高風險桌面操作，只能產生預演與授權提示。" : undefined,
+    observedElement,
+  };
+}
+
+function rehearseAgentTask(body = {}) {
+  const taskId = String(body.taskId ?? "");
+  const task = agentTasks.find((item) => item.id === taskId) ?? agentTasks[0];
+  const rehearsal = {
+    ...task,
+    status: task.risk === "high" ? "waiting-approval" : "orchestrator",
+    rehearsalSummary: `Orchestrator ${task.orchestrator} 已拆解 ${task.assignedAgentIds.length} 個子 Agent，下一步需使用者確認。`,
+  };
+  return rehearsal;
+}
+
 function scoreErgonomics(check) {
   const stepScore = Math.max(0, 100 - Math.max(0, check.steps - 4) * 8);
   const score = Math.round((stepScore + (check.keyboardReachable ? 100 : 45) + (check.noTextOverflow ? 100 : 30) + Math.round(check.tooltipCoverage * 100) + (check.riskPromptCoverage ? 100 : 50)) / 5);
@@ -2995,6 +3145,26 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && pathname === "/backend/status") {
     json(res, 200, backendReadiness());
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/desktop/accessibility/status") {
+    json(res, 200, { ...desktopAccessibilityStatus, checkedAt: nowIso() });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/desktop/window/snapshot") {
+    json(res, 200, { ...desktopWindowSnapshot, capturedAt: nowIso() });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/desktop/actions/rehearse") {
+    try {
+      const body = await readJson(req);
+      json(res, 200, rehearseDesktopAction(body));
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
     return;
   }
 
@@ -3587,6 +3757,23 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && pathname === "/memory/profile") {
     json(res, 200, {
       storage: { index: "SQLite mock", readableFiles: ["memory/*.md", "knowledge/*.yaml"] },
+      workspaceTruthSource: {
+        projectRoot,
+        namespaces: {
+          memory: path.join(projectRoot, "memory"),
+          knowledge: path.join(projectRoot, "knowledge"),
+          uploads: path.join(projectRoot, "uploads"),
+          backups: path.join(projectRoot, "backups"),
+          agents: path.join(projectRoot, "agents"),
+        },
+        markdownStrategy: {
+          dailyLog: path.join(projectRoot, "memory", "daily"),
+          longTermMemory: path.join(projectRoot, "memory", "long-term.md"),
+          pinnedFacts: path.join(projectRoot, "memory", "pinned-facts.md"),
+          compressionLog: path.join(projectRoot, "memory", "context-compression.yml"),
+        },
+        sqliteRole: "index-and-metadata-only",
+      },
       items: memoryItems,
     });
     return;
@@ -3680,6 +3867,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && pathname === "/agents/tasks") {
+    json(res, 200, { tasks: agentTasks });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/agents/tasks/rehearse") {
+    try {
+      const body = await readJson(req);
+      json(res, 200, rehearseAgentTask(body));
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
+    return;
+  }
+
   if (req.method === "GET" && pathname === "/agents") {
     json(res, 200, { agents: agentProfiles });
     return;
@@ -3693,11 +3895,14 @@ const server = http.createServer(async (req, res) => {
         name: body.name ?? "自訂 Agent",
         role: body.role ?? "使用者自訂工作角色。",
         model: body.model ?? "ChatGPT Pro / custom adapter",
+        modelProvider: body.modelProvider ?? "chatgpt-pro",
         workspaceId: body.workspaceId ?? "desktop-mvp",
         toolPermissions: Array.isArray(body.toolPermissions) ? body.toolPermissions : [],
         knowledgeBaseIds: [],
         memoryScope: body.memoryScope ?? "private",
         learningMode: body.learningMode ?? "rehearse-only",
+        allowedProjectFolders: Array.isArray(body.allowedProjectFolders) ? body.allowedProjectFolders : ["~/ClawDesk/projects/custom"],
+        sharedKnowledge: Boolean(body.sharedKnowledge),
       };
       agentProfiles.unshift(agent);
       audit("agent.create", { id: agent.id, workspaceId: agent.workspaceId, memoryScope: agent.memoryScope });

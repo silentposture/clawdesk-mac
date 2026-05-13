@@ -1,10 +1,10 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 
 const cwd = process.cwd();
 const reportDir = path.join(cwd, "artifacts", "qa-loop");
-const guardedPorts = [18890, 18790, 5173, 19120, 19130, 19140];
+const guardedPorts = [18890, 18790, 5173, 19110, 19120, 19130, 19140];
 
 function nowIso() {
   return new Date().toISOString();
@@ -17,31 +17,61 @@ function safeName(value) {
 function runStep(step) {
   const startedAt = nowIso();
   const startedMs = Date.now();
-  const result = spawnSync(step.cmd, step.args, {
-    cwd,
-    encoding: "utf8",
-    env: { ...process.env, ...(step.env || {}) },
-    stdio: ["ignore", "pipe", "pipe"],
-    timeout: step.timeoutMs ?? 420000,
-  });
-  const endedAt = nowIso();
-  const durationMs = Date.now() - startedMs;
-  const stdout = result.stdout || "";
-  const stderr = result.stderr || "";
-  const output = `${stdout}\n${stderr}`.trim();
-  const ok = result.status === 0;
+  const command = `${step.cmd} ${step.args.join(" ")}`;
 
-  return {
-    name: step.name,
-    command: `${step.cmd} ${step.args.join(" ")}`,
-    startedAt,
-    endedAt,
-    durationMs,
-    ok,
-    status: result.status ?? null,
-    signal: result.signal ?? null,
-    output,
-  };
+  return new Promise((resolve) => {
+    const child = spawn(step.cmd, step.args, {
+      cwd,
+      env: { ...process.env, ...(step.env || {}) },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+      setTimeout(() => child.kill("SIGKILL"), 2000).unref();
+    }, step.timeoutMs ?? 420000);
+
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      resolve({
+        name: step.name,
+        command,
+        startedAt,
+        endedAt: nowIso(),
+        durationMs: Date.now() - startedMs,
+        ok: false,
+        status: null,
+        signal: null,
+        output: `${stdout}\n${stderr}\n${error.message}`.trim(),
+      });
+    });
+    child.on("close", (status, signal) => {
+      clearTimeout(timer);
+      const output = `${stdout}\n${stderr}${timedOut ? "\nTimed out" : ""}`.trim();
+      resolve({
+        name: step.name,
+        command,
+        startedAt,
+        endedAt: nowIso(),
+        durationMs: Date.now() - startedMs,
+        ok: status === 0,
+        status,
+        signal,
+        output,
+      });
+    });
+  });
 }
 
 function cleanupPorts() {
@@ -154,13 +184,19 @@ function toMarkdown(report) {
 async function main() {
   await fs.mkdir(reportDir, { recursive: true });
 
-  const steps = [
+  const stepPlan = [
     { name: "npm-test", cmd: "npm", args: ["test"], timeoutMs: 180000 },
-    { name: "verify-mvp", cmd: "npm", args: ["run", "verify:mvp"], timeoutMs: 180000 },
-    { name: "verify-backend", cmd: "npm", args: ["run", "verify:backend"], timeoutMs: 180000 },
-    { name: "verify-backend-sim", cmd: "npm", args: ["run", "verify:backend:sim"], timeoutMs: 180000 },
-    { name: "verify-backend-production", cmd: "npm", args: ["run", "verify:backend:production"], timeoutMs: 180000 },
-    { name: "verify-production-gateway-sim", cmd: "npm", args: ["run", "verify:production-gateway:sim"], timeoutMs: 180000 },
+    {
+      group: "parallel-verify",
+      parallel: true,
+      steps: [
+        { name: "verify-mvp", cmd: "npm", args: ["run", "verify:mvp"], timeoutMs: 180000 },
+        { name: "verify-backend", cmd: "npm", args: ["run", "verify:backend"], timeoutMs: 180000 },
+        { name: "verify-backend-sim", cmd: "npm", args: ["run", "verify:backend:sim"], timeoutMs: 180000 },
+        { name: "verify-backend-production", cmd: "npm", args: ["run", "verify:backend:production"], timeoutMs: 180000 },
+      ],
+    },
+    { name: "verify-production-gateway-sim", cmd: "npm", args: ["run", "verify:production-gateway:sim"], timeoutMs: 180000, cleanupBefore: true, cleanupAfter: true },
     { name: "tauri-build-m4", cmd: "npm", args: ["run", "tauri:build:m4"], timeoutMs: 1800000, cleanupBefore: true, cleanupAfter: true },
     { name: "smoke-gui-prod", cmd: "npm", args: ["run", "smoke:gui:prod"], timeoutMs: 300000, cleanupBefore: true, cleanupAfter: true },
     { name: "smoke-tauri-app", cmd: "node", args: ["scripts/smoke-tauri-app.mjs", "--no-build"], timeoutMs: 360000, cleanupBefore: true, cleanupAfter: true },
@@ -173,15 +209,30 @@ async function main() {
 
   const results = [];
   const issues = [];
-  for (const step of steps) {
-    console.log(`\n=== ${step.name} ===`);
-    if (step.cleanupBefore) cleanupPorts();
-    const outcome = runStep(step);
+  for (const item of stepPlan) {
+    if (item.parallel) {
+      console.log(`\n=== ${item.group} ===`);
+      cleanupPorts();
+      const outcomes = await Promise.all(item.steps.map((step) => runStep(step)));
+      for (const outcome of outcomes) {
+        console.log(`\n--- ${outcome.name}: ${outcome.ok ? "PASS" : "FAIL"} (${outcome.durationMs} ms) ---`);
+        if (outcome.output) console.log(outcome.output);
+        results.push(outcome);
+        const issue = classifyIssue(outcome);
+        if (issue) issues.push({ ...issue, step: outcome.name });
+      }
+      cleanupPorts();
+      continue;
+    }
+
+    console.log(`\n=== ${item.name} ===`);
+    if (item.cleanupBefore) cleanupPorts();
+    const outcome = await runStep(item);
     if (outcome.output) console.log(outcome.output);
-    if (step.cleanupAfter) cleanupPorts();
+    if (item.cleanupAfter) cleanupPorts();
     results.push(outcome);
     const issue = classifyIssue(outcome);
-    if (issue) issues.push({ ...issue, step: step.name });
+    if (issue) issues.push({ ...issue, step: item.name });
   }
 
   const workflowGate = await checkWorkflowGate();

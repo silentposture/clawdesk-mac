@@ -1,6 +1,7 @@
 export type McpStatus = "disabled" | "available" | "connected" | "requires-approval";
 
 export type McpRisk = "low" | "medium" | "high";
+export type McpTier = "core" | "business" | "engineering";
 
 export interface McpProtocol {
   id: string;
@@ -57,6 +58,7 @@ export interface McpTool {
 export interface McpConnector {
   id: string;
   name: string;
+  tier: McpTier;
   vendor: "Microsoft" | "Google" | "Local" | "Developer" | "Engineering" | "Cloud";
   status: McpStatus;
   transport: "stdio" | "http" | "mock";
@@ -93,7 +95,21 @@ export const microsoftOfficeToolIds = [
 
 export function summarizeConnector(connector: McpConnector): string {
   const connected = connector.status === "connected" ? "已連線" : "未連線";
-  return `${connector.name}：${connected}，${connector.tools.length} 個工具`;
+  return `${connector.name}：${mcpTierLabel(connector.tier)}，${connected}，${connector.tools.length} 個工具`;
+}
+
+export function mcpTierLabel(tier: McpTier): string {
+  if (tier === "core") return "Core";
+  if (tier === "business") return "Business";
+  return "Engineering";
+}
+
+export function groupConnectorsByTier(connectors: McpConnector[]): Record<McpTier, McpConnector[]> {
+  return {
+    core: connectors.filter((connector) => connector.tier === "core"),
+    business: connectors.filter((connector) => connector.tier === "business"),
+    engineering: connectors.filter((connector) => connector.tier === "engineering"),
+  };
 }
 
 export function connectorSupportsTool(connector: McpConnector, toolId: string): boolean {

@@ -1,4 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
+import type {
+  AccessibilityStatus,
+  DesktopActionRehearsal,
+  DesktopActionRequest,
+  DesktopWindowSnapshot,
+} from "./desktopAutomation";
 import type { PermissionResultEvent } from "./events";
 import type { LegalConsentRecord } from "./legalConsent";
 
@@ -254,4 +260,24 @@ export async function stopLocalStack(): Promise<LocalStackStatus> {
 export async function restartLocalStack(): Promise<LocalStackStatus> {
   if (!hasTauriRuntime()) return unavailableLocalStackStatus();
   return invoke<LocalStackStatus>("restart_local_stack");
+}
+
+export async function getAccessibilityStatus(): Promise<AccessibilityStatus | undefined> {
+  if (!hasTauriRuntime()) return undefined;
+  return invoke<AccessibilityStatus>("get_accessibility_status");
+}
+
+export async function openAccessibilitySettings(): Promise<boolean> {
+  if (!hasTauriRuntime()) return false;
+  return invoke<boolean>("open_accessibility_settings");
+}
+
+export async function getActiveWindowSnapshot(): Promise<DesktopWindowSnapshot | undefined> {
+  if (!hasTauriRuntime()) return undefined;
+  return invoke<DesktopWindowSnapshot>("get_active_window_snapshot");
+}
+
+export async function rehearseDesktopAction(request: DesktopActionRequest): Promise<DesktopActionRehearsal | undefined> {
+  if (!hasTauriRuntime()) return undefined;
+  return invoke<DesktopActionRehearsal>("rehearse_desktop_action", { request });
 }

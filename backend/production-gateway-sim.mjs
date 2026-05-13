@@ -15,13 +15,12 @@ let currentMachineFingerprintHash = "";
 let currentLicenseStatus = createFreeLicenseStatus();
 
 const pricingPlans = [
-  { id: "hobby", name: "Hobby", priceUsd: 0, cadence: "free", description: "本機基礎功能與安全沙盒。" },
-  { id: "pro-monthly", name: "Pro Monthly", priceUsd: 19, cadence: "monthly", description: "個人完整桌面 Agent，每月訂閱。" },
-  { id: "pro-yearly", name: "Pro Yearly", priceUsd: 190, cadence: "yearly", description: "個人完整桌面 Agent，年繳優惠。" },
-  { id: "lifetime-local", name: "Lifetime Local", priceUsd: 249, cadence: "one-time", description: "永久本機 Pro，含 12 個月支援更新。" },
-  { id: "team", name: "Team", priceUsd: 40, cadence: "monthly", description: "多人協作與座席管理，按人計費。" },
-  { id: "enterprise", name: "Enterprise", priceUsd: 50000, cadence: "contract", description: "企業合約、稽核與私有部署支援。" },
-  { id: "byok-managed", name: "BYOK Managed", priceUsd: 30, cadence: "monthly", description: "自帶金鑰的受管執行個體。" },
+  { id: "free-trial", name: "Free Trial", priceUsd: 0, cadence: "trial", description: "本機安全沙盒、手動授權與基本桌面工作流試用。" },
+  { id: "monthly", name: "Monthly", priceUsd: 9, cadence: "monthly", description: "桌面 AI 工作平台月繳方案；不販售模型算力。" },
+  { id: "yearly", name: "Yearly", priceUsd: 79, cadence: "yearly", description: "桌面 AI 工作平台年繳方案，含支援更新資格。" },
+  { id: "lifetime", name: "Lifetime", priceUsd: 99, cadence: "one-time", description: "永久本機功能，含 12 個月支援更新。" },
+  { id: "early-bird", name: "Early Bird", priceUsd: 69, cadence: "one-time", description: "早鳥一次買斷名額，適合 side-project 商業 Beta 內測。" },
+  { id: "update-maintenance", name: "Update Maintenance", priceUsd: 29, cadence: "maintenance", description: "買斷版支援更新續費，延長可安裝新版本資格一年。" },
 ];
 
 const gatewayContract = {

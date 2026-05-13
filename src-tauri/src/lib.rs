@@ -22,6 +22,68 @@ struct GatewayInfo {
     mode: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AccessibilityStatus {
+    platform: String,
+    trusted: String,
+    can_read_active_window: bool,
+    setup_hint: String,
+    settings_url: String,
+    checked_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopBounds {
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopElementSnapshot {
+    id: String,
+    role: String,
+    label: String,
+    bounds: DesktopBounds,
+    enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopWindowSnapshot {
+    app_name: String,
+    window_title: String,
+    process_id: Option<u32>,
+    captured_at: String,
+    fallback: String,
+    elements: Vec<DesktopElementSnapshot>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopActionRequest {
+    action: String,
+    target_label: String,
+    risk: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopActionRehearsal {
+    action_id: String,
+    stage: String,
+    risk: String,
+    executable: bool,
+    requires_human_approval: bool,
+    summary: String,
+    blocked_reason: Option<String>,
+    observed_element: Option<DesktopElementSnapshot>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PermissionResult {
@@ -163,6 +225,107 @@ fn gateway_health_ok_for(base_url: &str) -> bool {
 
 fn gateway_health_ok() -> bool {
     gateway_health_ok_for(&default_gateway_info("external").base_url)
+}
+
+fn now_rfc3339_fallback() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| format!("{}Z", duration.as_secs()))
+        .unwrap_or_else(|_| "0Z".to_string())
+}
+
+fn accessibility_status_for_platform() -> AccessibilityStatus {
+    AccessibilityStatus {
+        platform: if cfg!(target_os = "macos") {
+            "macOS".to_string()
+        } else if cfg!(target_os = "windows") {
+            "Windows".to_string()
+        } else if cfg!(target_os = "linux") {
+            "Linux".to_string()
+        } else {
+            "unknown".to_string()
+        },
+        trusted: "unknown".to_string(),
+        can_read_active_window: false,
+        setup_hint: "系統設定 > 隱私權與安全性 > 輔助使用，允許 ClawDesk 讀取桌面元素。".to_string(),
+        settings_url: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility".to_string(),
+        checked_at: now_rfc3339_fallback(),
+    }
+}
+
+fn mock_active_window_snapshot() -> DesktopWindowSnapshot {
+    DesktopWindowSnapshot {
+        app_name: "ClawDesk Preview".to_string(),
+        window_title: "桌面操作預演".to_string(),
+        process_id: Some(0),
+        captured_at: now_rfc3339_fallback(),
+        fallback: "ax-tree".to_string(),
+        elements: vec![
+            DesktopElementSnapshot {
+                id: "ax-submit".to_string(),
+                role: "AXButton".to_string(),
+                label: "預覽動作".to_string(),
+                bounds: DesktopBounds {
+                    x: 420,
+                    y: 560,
+                    width: 112,
+                    height: 32,
+                },
+                enabled: true,
+            },
+            DesktopElementSnapshot {
+                id: "ax-target".to_string(),
+                role: "AXTextField".to_string(),
+                label: "目標路徑 / 資源".to_string(),
+                bounds: DesktopBounds {
+                    x: 180,
+                    y: 498,
+                    width: 360,
+                    height: 34,
+                },
+                enabled: true,
+            },
+        ],
+    }
+}
+
+fn rehearse_desktop_action_for(request: DesktopActionRequest) -> DesktopActionRehearsal {
+    let snapshot = mock_active_window_snapshot();
+    let risk = request.risk.unwrap_or_else(|| {
+        if request.action == "read" {
+            "low".to_string()
+        } else {
+            "medium".to_string()
+        }
+    });
+    let high_risk = risk == "high";
+    let observed_element = snapshot
+        .elements
+        .into_iter()
+        .find(|element| element.label == request.target_label);
+
+    DesktopActionRehearsal {
+        action_id: format!(
+            "desktop-{}-{}",
+            request.action,
+            request
+                .target_label
+                .chars()
+                .map(|value| if value.is_ascii_alphanumeric() { value } else { '-' })
+                .collect::<String>()
+        ),
+        stage: if high_risk { "authorize" } else { "rehearse" }.to_string(),
+        risk: risk.clone(),
+        executable: !high_risk,
+        requires_human_approval: request.action != "read" || risk != "low",
+        summary: format!("觀察 active window 後，預演 {} 於「{}」。", request.action, request.target_label),
+        blocked_reason: if high_risk {
+            Some("v0.2 不自動執行高風險桌面操作，只能產生預演與授權提示。".to_string())
+        } else {
+            None
+        },
+        observed_element,
+    }
 }
 
 fn local_stack_backend_url() -> String {
@@ -636,6 +799,39 @@ fn restart_local_stack(
     start_local_stack(app, state)
 }
 
+#[tauri::command]
+fn get_accessibility_status() -> Result<AccessibilityStatus, String> {
+    Ok(accessibility_status_for_platform())
+}
+
+#[tauri::command]
+fn open_accessibility_settings() -> Result<bool, String> {
+    if cfg!(target_os = "macos") {
+        Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .map(|_| true)
+            .map_err(|error| format!("Failed to open Accessibility settings: {error}"))
+    } else {
+        Ok(false)
+    }
+}
+
+#[tauri::command]
+fn get_active_window_snapshot() -> Result<DesktopWindowSnapshot, String> {
+    Ok(mock_active_window_snapshot())
+}
+
+#[tauri::command]
+fn rehearse_desktop_action(
+    request: DesktopActionRequest,
+) -> Result<DesktopActionRehearsal, String> {
+    Ok(rehearse_desktop_action_for(request))
+}
+
 pub fn run() {
     let app = tauri::Builder::default()
         .manage(SharedGatewayState::default())
@@ -651,7 +847,11 @@ pub fn run() {
             local_stack_status,
             start_local_stack,
             stop_local_stack,
-            restart_local_stack
+            restart_local_stack,
+            get_accessibility_status,
+            open_accessibility_settings,
+            get_active_window_snapshot,
+            rehearse_desktop_action
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
@@ -839,5 +1039,28 @@ mod tests {
         assert_eq!(logs.len(), 40);
         assert_eq!(logs.first().map(String::as_str), Some("line-5"));
         assert_eq!(logs.last().map(String::as_str), Some("line-44"));
+    }
+
+    #[test]
+    fn accessibility_status_has_macos_setup_contract() {
+        let status = accessibility_status_for_platform();
+
+        assert!(status.settings_url.contains("Privacy_Accessibility"));
+        assert!(status.setup_hint.contains("輔助使用"));
+        assert!(!status.can_read_active_window);
+    }
+
+    #[test]
+    fn desktop_rehearsal_blocks_high_risk_actions() {
+        let rehearsal = rehearse_desktop_action_for(DesktopActionRequest {
+            action: "click".to_string(),
+            target_label: "預覽動作".to_string(),
+            risk: Some("high".to_string()),
+        });
+
+        assert_eq!(rehearsal.stage, "authorize");
+        assert!(!rehearsal.executable);
+        assert!(rehearsal.blocked_reason.is_some());
+        assert!(rehearsal.observed_element.is_some());
     }
 }

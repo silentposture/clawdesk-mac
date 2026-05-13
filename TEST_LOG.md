@@ -410,3 +410,35 @@
 - 收斂判定：
   - 本機可控範圍全綠。
   - 流程已消除 timeout 假陽性，優化循環可穩定重複執行。
+
+### 迭代 24 ClawDesk v0.2 商業 Beta 與 macOS 原生代理能力（2026-05-13）
+
+- 需求：依 v0.2 計畫把 ClawDesk 推進到商業 Beta 方向，補上 side-project 定價、macOS Accessibility/AX-first 預演合約、工作區記憶真相來源、MCP 分層、Agent profile/task board、QA 並行與 release 耗時趨勢。
+- 修正：
+  - 定價方案改為 Free Trial / Monthly US$9 / Yearly US$79 / Lifetime US$99 / Early Bird US$69 / Update Maintenance US$29/year，並標明「桌面 AI 工作平台，不販售模型算力」。
+  - 新增 macOS 桌面代理面板、Tauri commands、Gateway endpoints 與測試：Accessibility status、active window snapshot、desktop action rehearsal；高風險桌面操作只允許預演與授權提示。
+  - 工作區記憶新增 `memory/`、`knowledge/`、`uploads/`、`backups/`、`agents/` single source of truth contract，SQLite 僅作 index/metadata。
+  - MCP catalog 新增 Core / Business / Engineering tier；Microsoft、Google、Browser 歸 Business，Developer、Engineering、Cloud 歸 Engineering。
+  - Agent profile 新增 model provider、允許專案資料夾、共享知識開關；新增簡化任務看板與 rehearsal endpoint。
+  - `qa:full-cycle` 新增可並行 verify group，並保留 production gateway sim / build / smoke 序列化。
+  - `release:summary` 新增最近兩次 full-cycle 耗時趨勢、最慢三步與改善判斷。
+- 問題分級與修復：
+  - `Blocker`（已修復）：第一次並行化把 `verify-production-gateway:sim` 放進並行 group，與 `verify:mvp` 的 mock sidecar 同時執行，造成「mock sidecar running」假失敗。
+  - 根因：production gateway sim 驗證本來就要求無桌面 mock sidecar，不能與 MVP mock gateway 驗證並行。
+  - 修正：將 `verify-production-gateway:sim` 移回序列步驟，前後執行 guarded port cleanup。
+  - `Major`（保留）：`release-preflight-strict` 仍因 production secrets、Apple signing/notarization、Developer ID 憑證缺口 fail-closed，屬外部依賴。
+- 最終驗證結果：
+  - `npm test`：通過（30 files / 105 tests）。
+  - `npm run build`：通過。
+  - `npm run verify:mvp`：通過（23 checks）。
+  - `cargo test --manifest-path src-tauri/Cargo.toml`：通過（17 tests）。
+  - `npm run qa:full-cycle`：通過，報告 `artifacts/qa-loop/2026-05-13T18-53-41.843Z-qa-full-cycle.json`。
+  - `npm run release:summary`：通過，overall `WARN`（僅外部依賴）。
+- 關鍵耗時（本輪 PASS）：
+  - `tauri-build-m4`: 209,587 ms
+  - `smoke-gui-prod`: 65,366 ms
+  - `verify` 並行 group 最慢步驟 `verify-backend`: 3,152 ms
+- 收斂判定：
+  - 本機可控範圍全綠。
+  - v0.2 新增能力目前停留在安全的觀察/預演/mock 合約，未自動執行高風險桌面操作。
+  - 剩餘阻塞僅為正式商業發佈所需外部 secrets 與 Apple 憑證。

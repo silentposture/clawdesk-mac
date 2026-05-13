@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAgentReadKnowledge, defaultAgents } from "./agents";
+import { canAgentReadKnowledge, canAgentUseProjectFolder, defaultAgentTasks, defaultAgents, summarizeAgentTask } from "./agents";
 
 describe("agent catalog", () => {
   it("provides the four default ClawDesk agents", () => {
@@ -16,5 +16,18 @@ describe("agent catalog", () => {
     expect(canAgentReadKnowledge(personal, privateItem)).toBe(false);
     expect(canAgentReadKnowledge(personal, sharedItem)).toBe(true);
     expect(canAgentReadKnowledge(research, privateItem)).toBe(true);
+  });
+
+  it("keeps configurable model providers and allowed folders per agent", () => {
+    const docs = defaultAgents[1];
+
+    expect(docs.modelProvider).toBe("chatgpt-pro");
+    expect(canAgentUseProjectFolder(docs, "~/ClawDesk/projects/docs-brief/")).toBe(true);
+    expect(canAgentUseProjectFolder(docs, "~/ClawDesk/projects/other")).toBe(false);
+  });
+
+  it("summarizes the simplified orchestrator task board", () => {
+    expect(defaultAgentTasks.map((task) => task.status)).toContain("waiting-approval");
+    expect(summarizeAgentTask(defaultAgentTasks[0])).toContain("2 個 Agent");
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   activateMockLicense,
   canInstallLatestVersion,
+  commercialPlans,
   createMockLicensePayload,
   createMockMachineFingerprint,
   detectLicenseTamper,
@@ -9,6 +10,23 @@ import {
 } from "./licensing";
 
 describe("Paddle + Keygen licensing", () => {
+  it("exposes v0.2 side-project commercial pricing without selling model compute", () => {
+    const prices = Object.fromEntries(commercialPlans.map((plan) => [plan.id, plan.priceUsd]));
+
+    expect(prices).toMatchObject({
+      "free-trial": 0,
+      monthly: 9,
+      yearly: 79,
+      lifetime: 99,
+      "early-bird": 69,
+      "update-maintenance": 29,
+    });
+    expect(commercialPlans.every((plan) => plan.paymentProvider === "paddle")).toBe(true);
+    expect(commercialPlans.every((plan) => plan.licenseProvider === "keygen")).toBe(true);
+    expect(commercialPlans.every((plan) => plan.positioning === "desktop-ai-work-platform")).toBe(true);
+    expect(commercialPlans.find((plan) => plan.id === "monthly")?.description).toContain("不販售模型算力");
+  });
+
   it("accepts a signed mock Keygen key and binds the current Mac", () => {
     const fingerprint = createMockMachineFingerprint("2026-05-12T00:00:00.000Z");
     const status = activateMockLicense("CLWD-PRO12-DEMO1-DEMO2-DEMO3", fingerprint, [], "2026-05-12T00:00:00.000Z");

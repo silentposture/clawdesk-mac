@@ -18,6 +18,7 @@ import {
   Server,
   ShieldCheck,
   MessagesSquare,
+  MousePointerClick,
   PlugZap,
   Send,
   Settings2,
@@ -34,6 +35,7 @@ import { AgentsPanel } from "./components/AgentsPanel";
 import { ChannelsPanel } from "./components/ChannelsPanel";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
 import { DeploymentConsolePanel } from "./components/DeploymentConsolePanel";
+import { DesktopAutomationPanel } from "./components/DesktopAutomationPanel";
 import { ErgonomicsPanel } from "./components/ErgonomicsPanel";
 import { LearningPanel } from "./components/LearningPanel";
 import { LegalConsentModal } from "./components/LegalConsentModal";
@@ -117,6 +119,7 @@ export default function App(): JSX.Element {
   const [aboutPanelOpen, setAboutPanelOpen] = useState(false);
   const [productionPanelOpen, setProductionPanelOpen] = useState(false);
   const [deploymentPanelOpen, setDeploymentPanelOpen] = useState(false);
+  const [desktopAutomationPanelOpen, setDesktopAutomationPanelOpen] = useState(false);
   const [legalConsent, setLegalConsent] = useState<LegalConsentRecord | undefined>(() => readLegalConsentRecord());
   const [quickSetupOpen, setQuickSetupOpen] = useState(() => Boolean(readLegalConsentRecord()));
   const [providerPanelOpen, setProviderPanelOpen] = useState(false);
@@ -556,6 +559,18 @@ export default function App(): JSX.Element {
               <span>{t("app.button.security")}</span>
             </button>
           </Tooltip>
+          <Tooltip text="檢查 macOS Accessibility 權限、active window metadata，並只做桌面操作預演。">
+            <button
+              className="session-button"
+              type="button"
+              data-testid="session-button-desktop-automation"
+              onClick={() => setDesktopAutomationPanelOpen(true)}
+              disabled={!identitySession.authenticated}
+            >
+              <MousePointerClick size={16} />
+              <span>桌面代理</span>
+            </button>
+          </Tooltip>
           <Tooltip text={t("app.section.diagnostics.desc")}>
             <button
               className="session-button"
@@ -725,6 +740,12 @@ export default function App(): JSX.Element {
       ) : null}
       {memoryPanelOpen ? <MemoryPanel gatewayBaseUrl={gateway?.baseUrl} onClose={() => setMemoryPanelOpen(false)} /> : null}
       {agentsPanelOpen ? <AgentsPanel gatewayBaseUrl={gateway?.baseUrl} onClose={() => setAgentsPanelOpen(false)} /> : null}
+      {desktopAutomationPanelOpen ? (
+        <DesktopAutomationPanel
+          gatewayBaseUrl={gateway?.baseUrl}
+          onClose={() => setDesktopAutomationPanelOpen(false)}
+        />
+      ) : null}
       {ergonomicsPanelOpen ? <ErgonomicsPanel gatewayBaseUrl={gateway?.baseUrl} onClose={() => setErgonomicsPanelOpen(false)} /> : null}
       {quickSetupOpen && legalConsent ? (
         <QuickSetupModal policy={sandboxPolicy} onPolicyChange={setSandboxPolicy} onClose={() => setQuickSetupOpen(false)} />

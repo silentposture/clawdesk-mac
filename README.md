@@ -1,6 +1,6 @@
 # ClawDesk 桌面版 MVP
 
-ClawDesk 是 OpenClaw-compatible、local-first 的 macOS 桌面 AI Agent。第一版使用 mock Gateway sidecar，因此可以先把桌面外殼、串流事件合約、Live Canvas、權限流程、商業授權、診斷與 Agent 管理做好，不需要先接 upstream OpenClaw repo。
+ClawDesk 是 OpenClaw-compatible、local-first 的 macOS 桌面 AI 工作平台，不販售模型算力；模型能力由使用者自己的 ChatGPT Pro、API key 或本機 Ollama/LLM provider 供應。v0.2 仍使用 mock Gateway sidecar，但主線已聚焦到可內測收費的商業 Beta：桌面外殼、串流事件合約、Live Canvas、權限流程、商業授權、診斷、Agent 管理與 macOS 原生代理預演。
 
 ## 目前主線
 
@@ -8,6 +8,8 @@ ClawDesk 是 OpenClaw-compatible、local-first 的 macOS 桌面 AI Agent。第�
 - 產品名稱、Tauri `productName` 與視窗標題為 `ClawDesk`；npm package、Cargo crate 與 bundle identifier 保留原值以避免破壞 build path。
 - Tauri 視窗使用 macOS overlay title bar，頂部區域保留交通燈按鈕空間。
 - 打包目標先鎖定 `.app` 與 `.dmg`。
+- v0.2 商業方案：Free Trial、Monthly US$9、Yearly US$79、Lifetime US$99、Early Bird US$69、Update Maintenance US$29/year；Paddle + Keygen 保持主線，商業抽象保留未來 MoR/license provider 替換空間。
+- macOS 桌面代理能力採 AX-first：先讀 Accessibility tree 與 active window metadata，再做低風險預演；高風險操作固定停在人工授權提示，不自動執行。
 - Windows/Linux 原生整合先保留架構接口，不作為目前主要開發目標。
 
 ## 瀏覽器開發模式

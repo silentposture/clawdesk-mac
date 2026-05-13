@@ -309,6 +309,17 @@ try {
     if (statusPayload.status.status !== "active") throw new Error("developer account should be activated");
     if (statusPayload.status.plan !== "lifetime-local") throw new Error("developer plan should be lifetime local");
     if (statusPayload.status.features?.length < 5) throw new Error("developer feature set missing");
+    const priceById = Object.fromEntries((statusPayload.pricingPlans ?? []).map((plan) => [plan.id, plan.priceUsd]));
+    for (const [planId, price] of Object.entries({
+      "free-trial": 0,
+      monthly: 9,
+      yearly: 79,
+      lifetime: 99,
+      "early-bird": 69,
+      "update-maintenance": 29,
+    })) {
+      if (priceById[planId] !== price) throw new Error(`v0.2 pricing mismatch for ${planId}`);
+    }
   });
 
   await check("path governance, memory, context, agents, learning rehearsal, and ergonomics", async () => {
@@ -553,6 +564,10 @@ try {
     if (!developer) throw new Error("missing developer tools connector");
     if (!engineering) throw new Error("missing engineering tools connector");
     if (!cloud) throw new Error("missing cloud services connector");
+    if (office.tier !== "business" || google.tier !== "business") throw new Error("business MCP tier missing");
+    if (developer.tier !== "engineering" || engineering.tier !== "engineering" || cloud.tier !== "engineering") {
+      throw new Error("engineering MCP tier missing");
+    }
     for (const [connector, toolIds] of [
       [office, ["word.summarize", "excel.inspect", "powerpoint.outline", "outlook.draft-reply"]],
       [google, ["drive.search", "docs.summarize", "sheets.inspect", "gmail.draft", "calendar.plan"]],
@@ -586,6 +601,40 @@ try {
     if (!terminalPreview.response.ok) throw new Error("developer MCP preview rejected");
     if (!terminalPreview.payload.requiresApproval || terminalPreview.payload.risk !== "high") {
       throw new Error("Terminal command plans must require high-risk approval");
+    }
+  });
+
+  await check("macOS desktop accessibility preview and agent task board", async () => {
+    const statusResponse = await fetch(`${baseUrl}/desktop/accessibility/status`);
+    const status = await statusResponse.json();
+    if (!statusResponse.ok || !status.settingsUrl?.includes("Privacy_Accessibility")) {
+      throw new Error("desktop accessibility status missing macOS settings contract");
+    }
+
+    const snapshotResponse = await fetch(`${baseUrl}/desktop/window/snapshot`);
+    const snapshot = await snapshotResponse.json();
+    if (!snapshotResponse.ok || snapshot.fallback !== "ax-tree" || !snapshot.elements?.length) {
+      throw new Error("desktop window snapshot should expose AX-first elements");
+    }
+
+    const rehearsal = await postJson("/desktop/actions/rehearse", {
+      action: "click",
+      targetLabel: "預覽動作",
+      risk: "high",
+    });
+    if (!rehearsal.response.ok || rehearsal.payload.executable || rehearsal.payload.stage !== "authorize") {
+      throw new Error("high-risk desktop action must be blocked at rehearsal");
+    }
+
+    const tasksResponse = await fetch(`${baseUrl}/agents/tasks`);
+    const tasks = await tasksResponse.json();
+    if (!tasksResponse.ok || !tasks.tasks?.some((task) => task.status === "waiting-approval")) {
+      throw new Error("agent task board should include waiting approval state");
+    }
+
+    const taskRehearsal = await postJson("/agents/tasks/rehearse", { taskId: "task-waiting-approval" });
+    if (!taskRehearsal.response.ok || !taskRehearsal.payload.rehearsalSummary) {
+      throw new Error("agent task rehearsal missing summary");
     }
   });
 

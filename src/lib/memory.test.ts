@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compressContext, createMemoryItem } from "./memory";
+import { buildWorkspaceTruthSource, compressContext, createMemoryItem } from "./memory";
 
 describe("memory and context", () => {
   it("creates readable markdown-backed memory items", () => {
@@ -27,5 +27,20 @@ describe("memory and context", () => {
     expect(compressed.estimatedTokens).toBeLessThan(10000);
     expect(compressed.pinnedFacts).toEqual(["品牌名稱 ClawDesk"]);
     expect(compressed.lastCompressedAt).toBe("2026-05-12T00:00:00.000Z");
+  });
+
+  it("keeps project folder as the memory and knowledge source of truth", () => {
+    const source = buildWorkspaceTruthSource("/Users/demo/ClawDesk Project/");
+
+    expect(source.projectRoot).toBe("/Users/demo/ClawDesk Project");
+    expect(source.namespaces).toEqual({
+      memory: "/Users/demo/ClawDesk Project/memory",
+      knowledge: "/Users/demo/ClawDesk Project/knowledge",
+      uploads: "/Users/demo/ClawDesk Project/uploads",
+      backups: "/Users/demo/ClawDesk Project/backups",
+      agents: "/Users/demo/ClawDesk Project/agents",
+    });
+    expect(source.markdownStrategy.pinnedFacts).toContain("pinned-facts.md");
+    expect(source.sqliteRole).toBe("index-and-metadata-only");
   });
 });

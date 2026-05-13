@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { connectorSupportsTool, planMcpAction, summarizeConnector, type McpConnector } from "./mcp";
+import { connectorSupportsTool, groupConnectorsByTier, planMcpAction, summarizeConnector, type McpConnector } from "./mcp";
 
 const connector: McpConnector = {
   id: "microsoft-office",
   name: "Microsoft 365 文書工具",
+  tier: "business",
   vendor: "Microsoft",
   status: "connected",
   transport: "mock",
@@ -30,7 +31,7 @@ const connector: McpConnector = {
 
 describe("MCP connector catalog", () => {
   it("summarizes connector state", () => {
-    expect(summarizeConnector(connector)).toBe("Microsoft 365 文書工具：已連線，2 個工具");
+    expect(summarizeConnector(connector)).toBe("Microsoft 365 文書工具：Business，已連線，2 個工具");
   });
 
   it("checks tool support", () => {
@@ -53,6 +54,7 @@ describe("MCP connector catalog", () => {
     const devConnector: McpConnector = {
       id: "developer-tools",
       name: "程式開發工具",
+      tier: "engineering",
       vendor: "Developer",
       status: "available",
       transport: "mock",
@@ -71,5 +73,17 @@ describe("MCP connector catalog", () => {
     const preview = planMcpAction(devConnector, "terminal.command.plan", "~/OpenClaw Project");
     expect(preview.requiresApproval).toBe(true);
     expect(preview.risk).toBe("high");
+  });
+
+  it("groups connectors into Core, Business, and Engineering tiers", () => {
+    const grouped = groupConnectorsByTier([
+      { ...connector, id: "core-files", tier: "core", vendor: "Local" },
+      connector,
+      { ...connector, id: "cloud-dev", tier: "engineering", vendor: "Cloud" },
+    ]);
+
+    expect(grouped.core.map((item) => item.id)).toEqual(["core-files"]);
+    expect(grouped.business.map((item) => item.id)).toEqual(["microsoft-office"]);
+    expect(grouped.engineering.map((item) => item.id)).toEqual(["cloud-dev"]);
   });
 });

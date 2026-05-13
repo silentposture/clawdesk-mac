@@ -16,9 +16,20 @@ interface KnowledgeSource {
   provider: string;
 }
 
+interface AgentTaskCard {
+  id: string;
+  title: string;
+  orchestrator: string;
+  assignedAgentIds: string[];
+  status: "orchestrator" | "waiting-approval" | "completed" | "failed";
+  risk: "low" | "medium" | "high";
+  projectFolder: string;
+}
+
 export function AgentsPanel({ gatewayBaseUrl, onClose }: AgentsPanelProps): JSX.Element {
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [knowledgeSources, setKnowledgeSources] = useState<KnowledgeSource[]>([]);
+  const [tasks, setTasks] = useState<AgentTaskCard[]>([]);
   const [bindings, setBindings] = useState<Record<string, string[]>>({});
   const [message, setMessage] = useState<string>();
 
@@ -58,6 +69,12 @@ export function AgentsPanel({ gatewayBaseUrl, onClose }: AgentsPanelProps): JSX.
         }
         return fallback;
       });
+    }
+
+    const tasksResponse = await fetch(`${gatewayBaseUrl}/agents/tasks`);
+    if (tasksResponse.ok) {
+      const taskPayload = (await tasksResponse.json()) as { tasks: AgentTaskCard[] };
+      setTasks(taskPayload.tasks);
     }
   }
 
@@ -174,11 +191,25 @@ export function AgentsPanel({ gatewayBaseUrl, onClose }: AgentsPanelProps): JSX.
           </Tooltip>
         </div>
         <section className="agent-grid">
+          <article className="agent-card">
+            <h3>任務看板</h3>
+            <p>簡化顯示 Orchestrator、子 Agent、等待授權、完成與失敗狀態。</p>
+            <div className="stack-list">
+              {tasks.map((task) => (
+                <article key={task.id}>
+                  <strong>{task.title}</strong>
+                  <small>{task.status} · Orchestrator {task.orchestrator} · 風險 {task.risk}</small>
+                  <p>{task.assignedAgentIds.join("、")} · {task.projectFolder}</p>
+                </article>
+              ))}
+            </div>
+          </article>
           {agents.map((agent) => (
             <article className="agent-card" key={agent.id}>
               <h3>{agent.name}</h3>
               <p>{agent.role}</p>
-              <small>{agent.model} · {agent.memoryScope} · {agent.learningMode}</small>
+              <small>{agent.modelProvider ?? "chatgpt-pro"} · {agent.model} · {agent.memoryScope} · {agent.learningMode}</small>
+              <p className="agent-knowledge-summary">允許專案資料夾：{(agent.allowedProjectFolders ?? ["~/ClawDesk/projects/custom"]).join("、")}</p>
               <div className="agent-knowledge-summary">
                 <strong>已綁定企業知識源：</strong>
                 <span>

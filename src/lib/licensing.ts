@@ -1,7 +1,21 @@
 export type PaymentProvider = "paddle";
 export type LicenseProvider = "keygen";
+export type FutureCommercialProvider = "lemon-squeezy-compatible";
 
-export type LicensePlan = "hobby" | "pro-monthly" | "pro-yearly" | "lifetime-local" | "team" | "enterprise" | "byok-managed";
+export type LicensePlan =
+  | "free-trial"
+  | "monthly"
+  | "yearly"
+  | "lifetime"
+  | "early-bird"
+  | "update-maintenance"
+  | "hobby"
+  | "pro-monthly"
+  | "pro-yearly"
+  | "lifetime-local"
+  | "team"
+  | "enterprise"
+  | "byok-managed";
 
 export type LicenseStatusType =
   | "free"
@@ -17,8 +31,17 @@ export interface PricingPlan {
   id: LicensePlan;
   name: string;
   priceUsd: number;
-  cadence: "free" | "monthly" | "yearly" | "one-time" | "contract";
+  cadence: "trial" | "free" | "monthly" | "yearly" | "one-time" | "maintenance" | "contract";
   description: string;
+}
+
+export interface CommercialPlan extends PricingPlan {
+  paymentProvider: PaymentProvider;
+  licenseProvider: LicenseProvider;
+  futureProvider: FutureCommercialProvider;
+  entitlement: string[];
+  supportUpdatesMonths?: number;
+  positioning: "desktop-ai-work-platform";
 }
 
 export interface EncryptedLicenseKey {
@@ -75,15 +98,85 @@ export interface LicenseStatus {
   lastValidationCode?: string;
 }
 
-export const pricingPlans: PricingPlan[] = [
-  { id: "hobby", name: "Hobby", priceUsd: 0, cadence: "free", description: "本機基礎功能與安全沙盒。" },
-  { id: "pro-monthly", name: "Pro Monthly", priceUsd: 19, cadence: "monthly", description: "個人完整桌面 Agent，每月訂閱。" },
-  { id: "pro-yearly", name: "Pro Yearly", priceUsd: 190, cadence: "yearly", description: "個人完整桌面 Agent，年繳優惠。" },
-  { id: "lifetime-local", name: "Lifetime Local", priceUsd: 249, cadence: "one-time", description: "永久本機 Pro，含 12 個月支援更新。" },
-  { id: "team", name: "Team", priceUsd: 40, cadence: "monthly", description: "多人協作與座席管理，按人計費。" },
-  { id: "enterprise", name: "Enterprise", priceUsd: 50000, cadence: "contract", description: "企業合約、稽核與私有部署支援。" },
-  { id: "byok-managed", name: "BYOK Managed", priceUsd: 30, cadence: "monthly", description: "自帶金鑰的受管執行個體。" },
+export const commercialPlans: CommercialPlan[] = [
+  {
+    id: "free-trial",
+    name: "Free Trial",
+    priceUsd: 0,
+    cadence: "trial",
+    description: "本機安全沙盒、手動授權與基本桌面工作流試用。",
+    paymentProvider: "paddle",
+    licenseProvider: "keygen",
+    futureProvider: "lemon-squeezy-compatible",
+    entitlement: ["safe-mode", "local-chat", "manual-permissions"],
+    positioning: "desktop-ai-work-platform",
+  },
+  {
+    id: "monthly",
+    name: "Monthly",
+    priceUsd: 9,
+    cadence: "monthly",
+    description: "桌面 AI 工作平台月繳方案；不販售模型算力，模型由使用者帳號或 API 供應。",
+    paymentProvider: "paddle",
+    licenseProvider: "keygen",
+    futureProvider: "lemon-squeezy-compatible",
+    entitlement: ["pro-agent", "mcp-connectors", "workflow-builder", "local-memory"],
+    positioning: "desktop-ai-work-platform",
+  },
+  {
+    id: "yearly",
+    name: "Yearly",
+    priceUsd: 79,
+    cadence: "yearly",
+    description: "桌面 AI 工作平台年繳方案，含支援更新資格。",
+    paymentProvider: "paddle",
+    licenseProvider: "keygen",
+    futureProvider: "lemon-squeezy-compatible",
+    entitlement: ["pro-agent", "mcp-connectors", "workflow-builder", "local-memory", "priority-updates"],
+    positioning: "desktop-ai-work-platform",
+  },
+  {
+    id: "lifetime",
+    name: "Lifetime",
+    priceUsd: 99,
+    cadence: "one-time",
+    description: "永久本機功能，含 12 個月支援更新；到期後仍可用最後符合資格版本。",
+    paymentProvider: "paddle",
+    licenseProvider: "keygen",
+    futureProvider: "lemon-squeezy-compatible",
+    entitlement: ["pro-agent", "mcp-connectors", "workflow-builder", "local-memory", "offline-grace"],
+    supportUpdatesMonths: 12,
+    positioning: "desktop-ai-work-platform",
+  },
+  {
+    id: "early-bird",
+    name: "Early Bird",
+    priceUsd: 69,
+    cadence: "one-time",
+    description: "早鳥一次買斷名額，適合 side-project 商業 Beta 內測。",
+    paymentProvider: "paddle",
+    licenseProvider: "keygen",
+    futureProvider: "lemon-squeezy-compatible",
+    entitlement: ["pro-agent", "mcp-connectors", "workflow-builder", "local-memory", "beta-feedback"],
+    supportUpdatesMonths: 12,
+    positioning: "desktop-ai-work-platform",
+  },
+  {
+    id: "update-maintenance",
+    name: "Update Maintenance",
+    priceUsd: 29,
+    cadence: "maintenance",
+    description: "買斷版支援更新續費，延長可安裝新版本資格一年。",
+    paymentProvider: "paddle",
+    licenseProvider: "keygen",
+    futureProvider: "lemon-squeezy-compatible",
+    entitlement: ["priority-updates", "support-updates"],
+    supportUpdatesMonths: 12,
+    positioning: "desktop-ai-work-platform",
+  },
 ];
+
+export const pricingPlans: PricingPlan[] = commercialPlans;
 
 export function normalizeKeygenKey(input: string): string {
   return input.trim().toUpperCase().replace(/\s+/g, "-");
@@ -105,8 +198,8 @@ export function createMockMachineFingerprint(now = new Date().toISOString()): Ma
 
 export function createMockLicensePayload(encodedKey: string, now = new Date().toISOString()): EncryptedLicenseKey {
   const normalized = normalizeKeygenKey(encodedKey);
-  const plan: LicensePlan = normalized.includes("LIFE") ? "lifetime-local" : normalized.includes("TEAM") ? "team" : "pro-yearly";
-  const supportUpdatesUntil = plan === "lifetime-local" ? "2027-05-12" : "2027-05-12";
+  const plan: LicensePlan = normalized.includes("LIFE") ? "lifetime" : normalized.includes("TEAM") ? "team" : "yearly";
+  const supportUpdatesUntil = "2027-05-12";
   return {
     keyId: `kg_${normalized.slice(5, 10).toLowerCase()}`,
     encodedKey: normalized,
@@ -115,7 +208,7 @@ export function createMockLicensePayload(encodedKey: string, now = new Date().to
     plan,
     status: normalized.includes("REVOK") ? "revoked" : isMockKeygenKey(normalized) ? "active" : "tampered",
     supportUpdatesUntil,
-    expiresAt: plan === "lifetime-local" ? undefined : "2027-05-12",
+    expiresAt: plan === "lifetime" ? undefined : "2027-05-12",
     deviceLimit: plan === "team" ? 10 : 3,
   };
 }
@@ -168,7 +261,7 @@ export function createFreeStatus(validationCode = "HOBBY_MODE"): LicenseStatus {
   return {
     paymentProvider: "paddle",
     licenseProvider: "keygen",
-    plan: "hobby",
+    plan: "free-trial",
     status: validationCode.includes("TAMPER") ? "tampered" : validationCode.includes("REVOK") ? "revoked" : "free",
     seats: 1,
     supportUpdatesUntil: "2026-05-12",

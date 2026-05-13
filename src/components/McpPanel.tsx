@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { McpActionPreview, McpConnector, McpTool } from "../lib/mcp";
-import { planMcpAction, summarizeConnector } from "../lib/mcp";
+import { mcpTierLabel, planMcpAction, summarizeConnector } from "../lib/mcp";
 
 interface McpPanelProps {
   gatewayBaseUrl?: string;
@@ -177,7 +177,7 @@ export function McpPanel({ gatewayBaseUrl, onClose }: McpPanelProps): JSX.Elemen
               <>
                 <div className="mcp-detail-head">
                   <div>
-                    <span>{selectedConnector.vendor} · {selectedConnector.transport}</span>
+                    <span>{mcpTierLabel(selectedConnector.tier)} · {selectedConnector.vendor} · {selectedConnector.transport}</span>
                     <h3>{selectedConnector.name}</h3>
                     <p>{selectedConnector.description}</p>
                     {selectedConnector.protocols?.length ? (
