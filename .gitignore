@@ -1,0 +1,10 @@
+node_modules/
+dist/
+target/
+artifacts/
+.DS_Store
+*.log
+.clawdesk-mock/
+.clawdesk-backend/
+.clawdesk-local-stack/
+src-tauri/binaries/mock-gateway-*

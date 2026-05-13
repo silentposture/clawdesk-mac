@@ -1,0 +1,8 @@
+[build]
+target = "aarch64-apple-darwin"
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "target-cpu=native"]
+
+[env]
+MACOSX_DEPLOYMENT_TARGET = "14.0"

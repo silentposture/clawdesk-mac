@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ClawDesk",
+  "version": "0.1.0",
+  "identifier": "dev.openclaw.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ClawDesk",
+        "width": 1240,
+        "height": 820,
+        "minWidth": 760,
+        "minHeight": 620,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 18,
+          "y": 18
+        }
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src ipc: http://127.0.0.1:* ws://127.0.0.1:*; img-src 'self' asset: data:; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "category": "Productivity",
+    "resources": {
+      "../sidecars/mock-gateway/server.mjs": "sidecars/mock-gateway/server.mjs",
+      "../backend/server.mjs": "backend/server.mjs",
+      "../backend/production-gateway-sim.mjs": "backend/production-gateway-sim.mjs",
+      "../backend/contracts.mjs": "backend/contracts.mjs",
+      "../backend/adapters/index.mjs": "backend/adapters/index.mjs",
+      "../backend/adapters/mock.mjs": "backend/adapters/mock.mjs",
+      "../backend/adapters/production.mjs": "backend/adapters/production.mjs",
+      "../docs/legal/INSTALLER_TERMS.md": "legal/INSTALLER_TERMS.md",
+      "../docs/legal/OPENCLAW_MIT_NOTICE.md": "legal/OPENCLAW_MIT_NOTICE.md"
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "hardenedRuntime": true,
+      "dmg": {
+        "windowSize": {
+          "width": 660,
+          "height": 420
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 190
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 190
+        }
+      }
+    },
+    "icon": ["icons/icon.png"]
+  }
+}
