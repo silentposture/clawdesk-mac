@@ -125,7 +125,10 @@ npm run release:guard:strict
 ```bash
 npm run smoke:tauri:app
 npm run smoke:dmg
+npm run release:summary
 ```
+
+完成後可優先查看 `artifacts/release-summary/latest-release-summary.md` 作為單一總覽。
 
 ## 目前 production 阻塞項
 

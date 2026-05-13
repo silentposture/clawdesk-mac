@@ -77,12 +77,18 @@ jobs:
       - name: Release guard strict
         run: npm run release:guard:strict
 
+      - name: Generate release summary
+        if: always()
+        run: npm run release:summary
+
       - name: Upload verify artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: verify-artifacts
-          path: artifacts/**
+          path: |
+            artifacts/**
+            QA_CYCLE_REPORT.md
           if-no-files-found: ignore
 
   build-sign-notarize:
@@ -178,5 +184,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-diagnostics
-          path: artifacts/**
+          path: |
+            artifacts/**
+            QA_CYCLE_REPORT.md
           if-no-files-found: ignore

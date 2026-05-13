@@ -13,6 +13,7 @@
     "preflight": "node scripts/preflight.mjs",
     "release:preflight:production": "node scripts/production-release-preflight.mjs",
     "release:preflight:production:strict": "node scripts/production-release-preflight.mjs --strict",
+    "release:summary": "node scripts/generate-release-summary.mjs",
     "release:guard": "node scripts/release-guard.mjs",
     "release:guard:strict": "node scripts/release-guard.mjs --strict-production --require-signing",
     "legal:manifest": "node scripts/generate-legal-consent.mjs",
