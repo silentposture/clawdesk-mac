@@ -10,19 +10,13 @@ import type { SandboxPolicy } from "../lib/security";
 import { FolderPicker } from "./FolderPicker";
 import { Tooltip } from "./Tooltip";
 import { llmProviderCatalog, type ProviderId } from "../lib/providers";
+import { useI18n } from "../lib/i18n";
 
 interface OpenClawSettingsPanelProps {
   policy: SandboxPolicy;
   onPolicyChange: (policy: SandboxPolicy) => void;
   onClose: () => void;
 }
-
-const goalLabels: Record<OpenClawSetupProfile["goal"], string> = {
-  personal: "個人助理",
-  office: "辦公文書",
-  automation: "自動化工作",
-  advanced: "進階自訂",
-};
 
 const providerOptions = llmProviderCatalog.map((provider) => ({
   id: provider.id,
@@ -38,6 +32,7 @@ export function OpenClawSettingsPanel({
   onPolicyChange,
   onClose,
 }: OpenClawSettingsPanelProps): JSX.Element {
+  const { t } = useI18n();
   const [profile, setProfile] = useState<OpenClawSetupProfile>({
     ...defaultOpenClawSetupProfile,
     workspaceFolder: policy.projectFolder,
@@ -52,6 +47,12 @@ export function OpenClawSettingsPanel({
     [activeSectionId],
   );
   const completion = setupCompletion(profile);
+  const goalLabels: Record<OpenClawSetupProfile["goal"], string> = {
+    personal: t("openclawSettings.goal.personal"),
+    office: t("openclawSettings.goal.office"),
+    automation: t("openclawSettings.goal.automation"),
+    advanced: t("openclawSettings.goal.advanced"),
+  };
 
   function handleWorkspaceFolderSelect(projectFolder: string) {
     const normalized = projectFolder.trim().replace(/\/+$/, "");
@@ -77,10 +78,10 @@ export function OpenClawSettingsPanel({
       <section className="openclaw-settings-panel" role="dialog" aria-modal="true" aria-labelledby="openclaw-settings-title">
         <header className="provider-header">
           <div>
-            <h2 id="openclaw-settings-title">OpenClaw 相容設定導引</h2>
-            <p>把 OpenClaw-compatible 設定搬到 ClawDesk 桌面端，但先用一般人看得懂的問題帶你完成。</p>
+            <h2 id="openclaw-settings-title">{t("openclawSettings.title")}</h2>
+            <p>{t("openclawSettings.subtitle")}</p>
           </div>
-          <button className="icon-button" type="button" aria-label="關閉" onClick={onClose}>
+          <button className="icon-button" type="button" aria-label={t("common.close")} onClick={onClose}>
             <X size={18} />
           </button>
         </header>
@@ -90,11 +91,11 @@ export function OpenClawSettingsPanel({
             <div className="completion-ring">
               <CheckCircle2 size={22} />
               <strong>{completion}%</strong>
-              <span>設定完成度</span>
+              <span>{t("openclawSettings.completion")}</span>
             </div>
-            <h3>先回答 5 個問題</h3>
+            <h3>{t("openclawSettings.quickQuestions")}</h3>
             <label>
-              <span>主要用途</span>
+              <span>{t("openclawSettings.goal")}</span>
               <select value={profile.goal} onChange={(event) => setProfile({ ...profile, goal: event.target.value as OpenClawSetupProfile["goal"] })}>
                 {Object.entries(goalLabels).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -104,7 +105,7 @@ export function OpenClawSettingsPanel({
               </select>
             </label>
             <label>
-              <span>AI 連線方式</span>
+              <span>{t("openclawSettings.provider")}</span>
               <select
                 value={profile.modelProvider}
                 onChange={(event) => setProfile({ ...profile, modelProvider: event.target.value as OpenClawSetupProfile["modelProvider"] })}
@@ -117,14 +118,14 @@ export function OpenClawSettingsPanel({
               </select>
             </label>
             <FolderPicker
-              label="專案資料夾"
+              label={t("openclawSettings.projectFolder")}
               value={profile.workspaceFolder}
-              helperText="一般使用者可直接從資料夾清單選擇專案目錄。"
+              helperText={t("openclawSettings.projectFolderHelp")}
               onSelect={handleWorkspaceFolderSelect}
             />
-            <Tooltip text="開啟後可讓 MCP/Browser 工具查詢網路；任何外部服務仍需個別授權。">
+            <Tooltip text={t("openclawSettings.internetHelp")}>
               <label className="setup-toggle">
-                <span>允許網際網路功能</span>
+                <span>{t("openclawSettings.internet")}</span>
                 <input
                   type="checkbox"
                   checked={profile.internetEnabled}
@@ -132,9 +133,9 @@ export function OpenClawSettingsPanel({
                 />
               </label>
             </Tooltip>
-            <Tooltip text="讓模型在授權後理解螢幕 GUI 狀態；適合協助操作桌面軟體。">
+            <Tooltip text={t("openclawSettings.screenHelp")}>
               <label className="setup-toggle">
-                <span>允許螢幕 GUI 視覺辨識</span>
+                <span>{t("openclawSettings.screen")}</span>
                 <input
                   type="checkbox"
                   checked={profile.screenVisionEnabled}
@@ -148,8 +149,8 @@ export function OpenClawSettingsPanel({
             <header>
               <Settings2 size={20} />
               <div>
-                <h3>OpenClaw 設定會被整理成這些區塊</h3>
-                <p>左邊是簡單設定；底層仍保留完整 key，未來可匯入/匯出 OpenClaw config。</p>
+                <h3>{t("openclawSettings.sectionsTitle")}</h3>
+                <p>{t("openclawSettings.sectionsSubtitle")}</p>
               </div>
             </header>
             <div className="setting-section-list">
@@ -182,24 +183,24 @@ export function OpenClawSettingsPanel({
                     <strong>{item.plainLabel}</strong>
                     <p>{item.description}</p>
                     <small>
-                      OpenClaw key：{item.label} · 預設：{item.defaultValue}
+                      {t("openclawSettings.keyDefault", { key: item.label, value: item.defaultValue })}
                     </small>
                   </article>
                 ))}
             </div>
             <button className="secondary-button" type="button" onClick={() => setAdvancedOpen((current) => !current)}>
               <SlidersHorizontal size={15} />
-              {advancedOpen ? "隱藏進階設定" : "顯示進階設定"}
+              {advancedOpen ? t("openclawSettings.hideAdvanced") : t("openclawSettings.showAdvanced")}
             </button>
           </section>
         </div>
 
         <footer className="setup-actions">
           <button className="secondary-button" type="button" onClick={onClose}>
-            稍後再說
+            {t("openclawSettings.later")}
           </button>
           <button className="primary-button" type="button" onClick={saveProfile}>
-            套用設定
+            {t("openclawSettings.apply")}
           </button>
         </footer>
       </section>

@@ -420,9 +420,9 @@ export function ProviderPanel({
           <article className="provider-card">
             <div>
               <Sparkles size={20} />
-              <h3>更多供應商（OpenClaw Provider 目錄）</h3>
+              <h3>{t("provider.moreTitle")}</h3>
             </div>
-            <p>支援 OpenClaw 目錄中的主要供應商，可直接以 key / OAuth / endpoint 方式連線。</p>
+            <p>{t("provider.moreSubtitle")}</p>
             <form className="key-form" onSubmit={configureAdvancedProvider}>
               <select
                 value={advancedProvider}

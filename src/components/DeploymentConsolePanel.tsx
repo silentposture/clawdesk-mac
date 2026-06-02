@@ -40,13 +40,13 @@ interface LicensePayload {
   };
 }
 
-async function fetchJson<T>(url: string): Promise<{ ok: boolean; status: number; payload?: T }> {
+async function fetchJson(url: string): Promise<{ ok: boolean; status: number; payload?: unknown }> {
   const response = await fetch(url);
   const text = await response.text();
   return {
     ok: response.ok,
     status: response.status,
-    payload: text ? (JSON.parse(text) as T) : undefined,
+    payload: text ? JSON.parse(text) : undefined,
   };
 }
 
@@ -76,9 +76,9 @@ export function DeploymentConsolePanel({ gateway, onClose }: DeploymentConsolePa
     void refreshLocalStack();
   }, [gateway?.baseUrl]);
 
-  async function optionalGet<T>(path: string): Promise<T | undefined> {
+  async function optionalGet(path: string): Promise<unknown | undefined> {
     if (!gateway?.baseUrl) return undefined;
-    const response = await fetchJson<T>(`${gateway.baseUrl}${path}`);
+    const response = await fetchJson(`${gateway.baseUrl}${path}`);
     return response.ok ? response.payload : undefined;
   }
 
@@ -87,15 +87,15 @@ export function DeploymentConsolePanel({ gateway, onClose }: DeploymentConsolePa
     setError(undefined);
     try {
       const [healthPayload, backendPayload, planPayload, licensePayload] = await Promise.all([
-        optionalGet<HealthPayload>("/health"),
-        optionalGet<DeploymentStatus>("/backend/status"),
-        optionalGet<DeploymentPlan>("/backend/deployment-plan"),
-        optionalGet<LicensePayload>("/license/status"),
+        optionalGet("/health"),
+        optionalGet("/backend/status"),
+        optionalGet("/backend/deployment-plan"),
+        optionalGet("/license/status"),
       ]);
-      setHealth(healthPayload);
-      setBackendStatus(backendPayload);
-      setPlan(planPayload);
-      setLicense(licensePayload);
+      setHealth(healthPayload as HealthPayload | undefined);
+      setBackendStatus(backendPayload as DeploymentStatus | undefined);
+      setPlan(planPayload as DeploymentPlan | undefined);
+      setLicense(licensePayload as LicensePayload | undefined);
     } catch {
       setError(t("deployment.error"));
     }
@@ -127,7 +127,7 @@ export function DeploymentConsolePanel({ gateway, onClose }: DeploymentConsolePa
 
     async function probe(id: string, label: string, path: string, required = true) {
       try {
-        const response = await fetchJson<unknown>(`${baseUrl}${path}`);
+        const response = await fetchJson(`${baseUrl}${path}`);
         if (response.ok) {
           nextChecks.push({ id, label, status: "pass", detail: `HTTP ${response.status}` });
         } else {
@@ -183,7 +183,7 @@ export function DeploymentConsolePanel({ gateway, onClose }: DeploymentConsolePa
               {t("deployment.run")}
             </button>
             <p>
-              PASS {checkSummary.passed} · FAIL {checkSummary.failed} · SKIP {checkSummary.skipped}
+              {t("common.pass")} {checkSummary.passed} · {t("common.fail")} {checkSummary.failed} · {t("common.skip")} {checkSummary.skipped}
             </p>
           </article>
         </section>
@@ -194,10 +194,10 @@ export function DeploymentConsolePanel({ gateway, onClose }: DeploymentConsolePa
           <dl className="status-list">
             <div><dt>{t("deployment.lifecycleAvailable")}</dt><dd>{String(localStack?.available ?? false)}</dd></div>
             <div><dt>{t("deployment.lifecycleRunning")}</dt><dd>{String(localStack?.running ?? false)}</dd></div>
-            <div><dt>{t("deployment.backendPid")}</dt><dd>{localStack?.backendPid ?? "none"}</dd></div>
-            <div><dt>{t("deployment.gatewayPid")}</dt><dd>{localStack?.gatewayPid ?? "none"}</dd></div>
-            <div><dt>{t("deployment.backendUrl")}</dt><dd>{localStack?.backendUrl ?? "none"}</dd></div>
-            <div><dt>{t("deployment.gatewayUrl")}</dt><dd>{localStack?.gatewayUrl ?? "none"}</dd></div>
+            <div><dt>{t("deployment.backendPid")}</dt><dd>{localStack?.backendPid ?? t("deployment.none")}</dd></div>
+            <div><dt>{t("deployment.gatewayPid")}</dt><dd>{localStack?.gatewayPid ?? t("deployment.none")}</dd></div>
+            <div><dt>{t("deployment.backendUrl")}</dt><dd>{localStack?.backendUrl ?? t("deployment.none")}</dd></div>
+            <div><dt>{t("deployment.gatewayUrl")}</dt><dd>{localStack?.gatewayUrl ?? t("deployment.none")}</dd></div>
             <div><dt>{t("deployment.backendHealthy")}</dt><dd>{String(localStack?.backendHealthy ?? false)}</dd></div>
             <div><dt>{t("deployment.gatewayHealthy")}</dt><dd>{String(localStack?.gatewayHealthy ?? false)}</dd></div>
           </dl>

@@ -46,7 +46,7 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
 
   async function postIdentity(path: string, body: unknown) {
     if (!gatewayBaseUrl) {
-      throw new Error("No gateway base URL");
+      throw new Error(t("identity.formError.noGateway"));
     }
     const response = await fetch(`${gatewayBaseUrl}${path}`, {
       method: "POST",
@@ -56,7 +56,7 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
     const payload = await response.json();
     if (!response.ok) {
       const err: Error & { payload?: unknown } = new Error(
-        `Request failed: ${response.status}`,
+        t("identity.formError.requestFailed", { status: response.status }),
       ) as Error & { payload?: unknown };
       err.payload = payload;
       throw err;
@@ -97,7 +97,7 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
       );
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload?.error ?? "verification fetch failed");
+        throw new Error(payload?.error ?? t("identity.formError.verificationFetchFailed"));
       }
       const code = typeof payload.code === "string" ? payload.code : "";
       if (!code) {
@@ -260,11 +260,11 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
         {session.authenticated ? (
           <div className="identity-session">
             <h3>{t("identity.authenticated")}</h3>
-            <p>Email：{session.email}</p>
-            {session.organization ? <p>組織：{session.organization}</p> : null}
+            <p>{t("identity.emailLabel", { value: session.email })}</p>
+            {session.organization ? <p>{t("identity.organizationLabel", { value: session.organization })}</p> : null}
             <p>{t("identity.modeLabel")}：{session.mode}</p>
-            {sessionSsoProviderLabel ? <p>SSO：{sessionSsoProviderLabel}</p> : null}
-            {session.lastLoginAt ? <p>上次登入：{session.lastLoginAt}</p> : null}
+            {sessionSsoProviderLabel ? <p>{t("identity.ssoProviderLabel")}{sessionSsoProviderLabel}</p> : null}
+            {session.lastLoginAt ? <p>{t("identity.lastLogin", { value: session.lastLoginAt })}</p> : null}
             <button className="secondary-button" type="button" onClick={signOut} disabled={busy}>
               <LogIn size={16} />
               {t("identity.signout")}
@@ -349,7 +349,7 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
               />
             </label>
             <label>
-              <span>部署模式</span>
+              <span>{t("identity.deploymentMode")}</span>
               <select value={deploymentMode} onChange={(event) => setDeploymentMode(event.target.value as "personal" | "enterprise")}>
                 {identityModes.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -363,7 +363,7 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
               <input
                 value={organization}
                 onChange={(event) => setOrganization(event.target.value)}
-                placeholder="公司、學校或團隊名稱"
+                placeholder={t("identity.organizationPlaceholder")}
                 autoComplete="organization"
               />
             </label>
@@ -396,7 +396,7 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
           <section className="identity-verification">
             <h3>{t("identity.submit.confirm")}</h3>
             <label>
-              <span>驗證碼（6 碼）</span>
+              <span>{t("identity.verificationCode")}</span>
               <input
                 value={verificationCode}
                 onChange={(event) => setVerificationCode(event.target.value)}
@@ -430,14 +430,14 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
                 ))}
               </select>
             </label>
-            <p>MVP mock will create entry users directly; production should redirect to the SSO provider.</p>
+            <p>{t("identity.ssoMockNotice")}</p>
             <label>
               <span>{t("identity.connectHint")}</span>
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 type="email"
-                placeholder="如需綁定既有帳號可輸入"
+                placeholder={t("identity.organizationPlaceholder")}
                 autoComplete="email"
               />
             </label>
@@ -446,7 +446,7 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
               <input
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="SSO 對應名稱"
+                placeholder={t("identity.ssoNamePlaceholder")}
                 autoComplete="name"
               />
             </label>
@@ -455,7 +455,7 @@ export function IdentityPanel({ session, gatewayBaseUrl, onClose, onSessionChang
               <input
                 value={organization}
                 onChange={(event) => setOrganization(event.target.value)}
-                placeholder="請填寫企業 / 組織名稱"
+                placeholder={t("identity.ssoOrganizationPlaceholder")}
               />
             </label>
             <button className="primary-button" type="submit" disabled={busy || !gatewayBaseUrl}>

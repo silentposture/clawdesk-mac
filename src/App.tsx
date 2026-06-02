@@ -559,7 +559,7 @@ export default function App(): JSX.Element {
               <span>{t("app.button.security")}</span>
             </button>
           </Tooltip>
-          <Tooltip text="檢查 macOS Accessibility 權限、active window metadata，並只做桌面操作預演。">
+          <Tooltip text={t("app.section.desktopAutomation.desc")}>
             <button
               className="session-button"
               type="button"
@@ -568,7 +568,7 @@ export default function App(): JSX.Element {
               disabled={!identitySession.authenticated}
             >
               <MousePointerClick size={16} />
-              <span>桌面代理</span>
+              <span>{t("app.button.desktopAutomation")}</span>
             </button>
           </Tooltip>
           <Tooltip text={t("app.section.diagnostics.desc")}>

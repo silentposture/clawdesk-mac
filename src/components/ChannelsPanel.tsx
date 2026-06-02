@@ -253,7 +253,7 @@ export function ChannelsPanel({ gatewayBaseUrl, onClose }: ChannelsPanelProps): 
                 ) : null}
               </>
             ) : (
-              <p className="empty-note">No channels loaded.</p>
+              <p className="empty-note">{t("channel.empty")}</p>
             )}
             {error ? <p className="panel-error">{error}</p> : null}
           </section>

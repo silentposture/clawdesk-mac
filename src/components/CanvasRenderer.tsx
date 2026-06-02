@@ -1,6 +1,7 @@
 import { Activity, CheckCircle2, CircleDot, Gauge, ListChecks, Table2 } from "lucide-react";
 import type { CanvasComponent } from "../lib/events";
 import type { CanvasSurface } from "../lib/canvas";
+import { useI18n } from "../lib/i18n";
 
 interface CanvasRendererProps {
   surface?: CanvasSurface;
@@ -23,7 +24,7 @@ function asRows(value: unknown): Array<Record<string, unknown>> {
   return value.filter((row): row is Record<string, unknown> => !!row && typeof row === "object");
 }
 
-function renderComponent(component: CanvasComponent, surface: CanvasSurface): JSX.Element {
+function renderComponent(component: CanvasComponent, surface: CanvasSurface, actionFallback: string): JSX.Element {
   const props = component.props;
 
   if (component.type === "Panel") {
@@ -33,7 +34,7 @@ function renderComponent(component: CanvasComponent, surface: CanvasSurface): JS
         <div className="canvas-panel-body">
           {(component.children ?? []).map((childId) => {
             const child = surface.components[childId];
-            return child ? renderComponent(child, surface) : null;
+            return child ? renderComponent(child, surface, actionFallback) : null;
           })}
         </div>
       </section>
@@ -116,18 +117,19 @@ function renderComponent(component: CanvasComponent, surface: CanvasSurface): JS
   return (
     <button className="canvas-action" key={component.id} type="button">
       <CircleDot size={16} />
-      {asString(props.label, "動作")}
+      {asString(props.label, actionFallback)}
     </button>
   );
 }
 
 export function CanvasRenderer({ surface }: CanvasRendererProps): JSX.Element {
+  const { t } = useI18n();
   if (!surface || !surface.rootId) {
     return (
       <div className="empty-canvas">
         <Activity size={28} />
-        <h2>Live Canvas</h2>
-        <p>結構化結果、授權要求與生成式工作區畫面會顯示在這裡。</p>
+        <h2>{t("canvas.emptyTitle")}</h2>
+        <p>{t("canvas.emptyBody")}</p>
       </div>
     );
   }
@@ -140,7 +142,7 @@ export function CanvasRenderer({ surface }: CanvasRendererProps): JSX.Element {
         <Table2 size={18} />
         <span>{surface.title}</span>
       </div>
-      {root ? renderComponent(root, surface) : null}
+      {root ? renderComponent(root, surface, t("canvas.actionFallback")) : null}
     </div>
   );
 }

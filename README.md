@@ -1,12 +1,14 @@
-# ClawDesk 桌面版 MVP
+# ClawDesk Desktop MVP
 
-本倉庫以 `PolyForm Noncommercial 1.0.0` 對外公開，macOS 版本在此目錄，Windows 主線在 [ClawDesk Windows repo](https://github.com/silentposture/clawdesk)。
+This repository publishes the macOS mainline and is released under `PolyForm Noncommercial 1.0.0`. The Windows version lives in [ClawDesk Windows repo](https://github.com/silentposture/clawdesk).
 
-ClawDesk 是由 Alisonsoftware 開發、OpenClaw-compatible、local-first 的 macOS 桌面 AI 工作平台。此倉庫允許公開檢視、fork、修改、提交 PR 與多人協作補強，但禁止商用、再販售、代管收費或任何以本專案直接或間接獲利的用途。模型能力由使用者自己的 ChatGPT Pro、API key 或本機 Ollama/LLM provider 供應；目前不提供任何付費解鎖、訂閱或商業授權。
+ClawDesk is an OpenClaw-compatible, local-first macOS desktop AI platform. Public inspection, forks, PRs, and multi-editor collaboration are welcome, but commercial use, resale, hosted paid use, and any direct or indirect monetization are prohibited. Model capability comes from the user’s own ChatGPT Pro, API key, or local Ollama/LLM provider; there is no paid unlock, subscription wall, or commercial license in this repository.
 
-開發者聲明：Alisonsoftware 是個人開發者顯示名稱，非公司、法人、合夥或代理商名稱。一般支援、專案協作與隱私聯絡信箱為 `huangkuoling@gmail.com`；若未來需要公開法務或支援聯絡資料，再另行揭露必要資訊。
+Developer note: Alisonsoftware is a personal developer display name, not a company, legal entity, partnership, or agency name. General support, project collaboration, and privacy contact: `huangkuoling@gmail.com`. If public legal or support contact details are needed later, they will be disclosed separately.
 
-## 目前主線
+New public documentation is written in English first; legacy Chinese text remains only where it has not yet been migrated.
+
+## Current Focus
 
 - 優先支援 macOS 桌面 app 體驗。
 - 產品名稱、Tauri `productName` 與視窗標題為 `ClawDesk`；npm package、Cargo crate 與 bundle identifier 保留原值以避免破壞 build path。
@@ -16,7 +18,7 @@ ClawDesk 是由 Alisonsoftware 開發、OpenClaw-compatible、local-first 的 ma
 - macOS 桌面代理能力採 AX-first：先讀 Accessibility tree 與 active window metadata，再做低風險預演；高風險操作固定停在人工授權提示，不自動執行。
 - Windows 版本在 [ClawDesk Windows repo](https://github.com/silentposture/clawdesk)；Linux 原生整合先保留架構接口，不作為目前主要開發目標。
 
-## 瀏覽器開發模式
+## Browser Dev Mode
 
 啟動 mock Gateway：
 
