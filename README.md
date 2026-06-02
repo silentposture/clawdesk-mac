@@ -17,6 +17,7 @@ New public documentation is written in English first; legacy Chinese text remain
 - Keep all core features open by default, with no paid unlocks or feature locks; the license and account panels are retained only for compatibility, testing, and collaboration verification.
 - Use AX-first for the macOS desktop agent: read the Accessibility tree and active window metadata first, then rehearse low-risk actions; high-risk actions always stop at a manual approval prompt and never auto-run.
 - The Windows version lives in [ClawDesk Windows repo](https://github.com/silentposture/clawdesk); Linux native integration remains as an architectural interface and is not a primary development target right now.
+- The release, payment, signing, and beta sections later in this README are legacy planning notes kept for provenance. They do not change the current free, noncommercial, open-source policy in this repository.
 
 ## Browser Dev Mode
 
