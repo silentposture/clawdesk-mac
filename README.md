@@ -1,10 +1,10 @@
 # ClawDesk 桌面版 MVP
 
-本倉庫以 MIT License 開源，macOS 版本在此目錄，Windows 主線在 [ClawDesk Windows repo](https://github.com/silentposture/clawdesk)。
+本倉庫以 `PolyForm Noncommercial 1.0.0` 對外公開，macOS 版本在此目錄，Windows 主線在 [ClawDesk Windows repo](https://github.com/silentposture/clawdesk)。
 
-ClawDesk 是由 Alisonsoftware 開發、OpenClaw-compatible、local-first 的 macOS 桌面 AI 工作平台，不販售模型算力；模型能力由使用者自己的 ChatGPT Pro、API key 或本機 Ollama/LLM provider 供應。v0.2 仍使用 mock Gateway sidecar，但主線已聚焦到可內測收費的桌面外殼、串流事件合約、Live Canvas、權限流程、授權、診斷、Agent 管理與 macOS 原生代理預演。
+ClawDesk 是由 Alisonsoftware 開發、OpenClaw-compatible、local-first 的 macOS 桌面 AI 工作平台。此倉庫允許公開檢視、fork、修改、提交 PR 與多人協作補強，但禁止商用、再販售、代管收費或任何以本專案直接或間接獲利的用途。模型能力由使用者自己的 ChatGPT Pro、API key 或本機 Ollama/LLM provider 供應；目前不提供任何付費解鎖、訂閱或商業授權。
 
-開發者聲明：Alisonsoftware 是個人開發者顯示名稱，非公司、法人、合夥或代理商名稱。一般支援、授權、隱私與商業合作聯絡信箱為 `huangkuoling@gmail.com`；正式銷售渠道若要求 trader / seller / developer contact information，需另行揭露必要資料。
+開發者聲明：Alisonsoftware 是個人開發者顯示名稱，非公司、法人、合夥或代理商名稱。一般支援、專案協作與隱私聯絡信箱為 `huangkuoling@gmail.com`；若未來需要公開法務或支援聯絡資料，再另行揭露必要資訊。
 
 ## 目前主線
 
@@ -12,7 +12,7 @@ ClawDesk 是由 Alisonsoftware 開發、OpenClaw-compatible、local-first 的 ma
 - 產品名稱、Tauri `productName` 與視窗標題為 `ClawDesk`；npm package、Cargo crate 與 bundle identifier 保留原值以避免破壞 build path。
 - Tauri 視窗使用 macOS overlay title bar，頂部區域保留交通燈按鈕空間。
 - 打包目標先鎖定 `.app` 與 `.dmg`。
-- v0.2 商業方案：Free Trial、Pro Yearly US$79、Lifetime US$99；Lemon Squeezy 是唯一付款渠道，Keygen 負責授權與機器綁定。
+- 核心功能預設全部開放，不設付費解鎖或功能鎖；授權與帳號面板僅保留作相容性、測試與協作驗證。
 - macOS 桌面代理能力採 AX-first：先讀 Accessibility tree 與 active window metadata，再做低風險預演；高風險操作固定停在人工授權提示，不自動執行。
 - Windows 版本在 [ClawDesk Windows repo](https://github.com/silentposture/clawdesk)；Linux 原生整合先保留架構接口，不作為目前主要開發目標。
 
@@ -221,30 +221,19 @@ MVP 先建立桌面 GUI、Gateway 合約與安全限制；正式產品化時可�
 
 每個帳號可設定協作角色：擁有者、管理員、編輯者、檢視者、自動化服務帳號。高風險 scope 會要求人工授權。
 
-## 商業授權、更新與診斷
+## 授權、更新與診斷
 
 `授權` 面板已加入 Lemon Squeezy License API + Keygen 相容離線票券架構：
 
-- Lemon Squeezy：mock 付款、訂閱、Lifetime、退款與支援更新續買事件。
-- Lemon Squeezy webhook：mock `order_created`、`license_key_created`、`subscription_*`、退款/到期事件；正式後端需驗證 `X-Signature` HMAC SHA-256 後寫入授權資料。
-- Lemon Squeezy License API：App 輸入 license key 後，後端呼叫 Activate 建立 instance，回傳並保存 `instance_id`；後續 Validate 使用 `license_key + instance_id`。
-- Keygen：保留相容離線票券、撤銷與篡改回報路徑，避免離線與既有 smoke contract 斷裂。
-- 授權金鑰篡改、方案/更新日/裝置數修改或 license file 失效時，會降級為 safe mode，並顯示需要重新線上驗證。
-- 更新系統提供 `/updates/manifest` 與 `/updates/check`：manifest 內含 macOS DMG download URL、release notes、版本日期與 `supportUpdatesUntil` 資格規則；到期後仍保留最後符合資格版本。
+- `授權` 面板保留作 mock / 相容性驗證，不代表付費解鎖機制。
+- 更新系統提供 `/updates/manifest` 與 `/updates/check`：manifest 內含 macOS DMG download URL、release notes、版本日期與 `supportUpdatesUntil` 資格規則；到期後仍保留最後符合資格版本，但核心功能不因付款而關閉。
 - macOS machine fingerprint 只保存 salted hash，不保存明文 CPU/主機板序號。
-- Launch pricing is limited to Free Trial, Pro Yearly US$79, and Lifetime US$99.
 
-目前 MAC 專案也已開始對齊 NaviaWorks `UniversalServer` 接入規範：canonical API 入口改為 `/api/auth/*`、`/api/account/entitlements`、`/api/license/*`、`/api/webhooks/lemonsqueezy`。既有 `/auth/*`、`/licenses/*`、`/license/*` 仍保留為相容層，避免打斷現有 GUI 與 smoke tests。
+目前 MAC 專案也已開始對齊 NaviaWorks `UniversalServer` 接入規範：canonical API 入口改為 `/api/auth/*`、`/api/account/entitlements`、`/api/license/*`、`/api/webhooks/lemonsqueezy`。既有 `/auth/*`、`/licenses/*`、`/license/*` 仍保留作相容層，避免打斷現有 GUI 與 smoke tests。
 
-`授權` 面板同時顯示售價方案：
+`版權` 面板顯示 ClawDesk 非商業授權、安裝同意條款、OpenClaw-compatible 聲明、OpenClaw upstream notice、第三方 NOTICE、隱私與使用者內容權利。使用者保留輸入、上傳檔案、專案資料與 AI 輸出內容權利；ClawDesk 不主張使用者內容所有權。
 
-- Free Trial：USD $0。
-- Pro Yearly：USD $79/年。
-- Lifetime：USD $99。
-
-`版權` 面板顯示 ClawDesk MIT 開源授權、安裝同意條款、訂閱/自動續費揭露、OpenClaw-compatible 聲明、OpenClaw MIT 開源說明、第三方 NOTICE、隱私與使用者內容權利。使用者保留輸入、上傳檔案、專案資料與 AI 輸出內容權利；ClawDesk 不主張使用者內容所有權。
-
-安裝與商業條款草案放在 `docs/legal/INSTALLER_TERMS.md`，並會被打包到 Tauri app resources 的 `legal/INSTALLER_TERMS.md`。OpenClaw MIT 與重製版權聲明放在 `docs/legal/OPENCLAW_MIT_NOTICE.md`，並會被打包到 `legal/OPENCLAW_MIT_NOTICE.md`。這兩份文件是產品落地草案，不構成法律意見；正式上架、收款或跨國販售前需由律師依實際銷售地區、Lemon Squeezy/Keygen 合約與消費者保護法審閱。
+安裝與發布條款草案放在 `docs/legal/INSTALLER_TERMS.md`，並會被打包到 Tauri app resources 的 `legal/INSTALLER_TERMS.md`。OpenClaw upstream notice 放在 `docs/legal/OPENCLAW_MIT_NOTICE.md`，並會被打包到 `legal/OPENCLAW_MIT_NOTICE.md`。這兩份文件是歷史/規劃草案，不構成法律意見；若未來要轉為其他發行方案，需另外建立獨立條款與法務審閱流程。
 
 `診斷` 面板會在本機建立非個資診斷包，使用者確認後才送出或匯出。診斷包不包含 Email、完整路徑、完整金鑰、API key、聊天內容、螢幕截圖或 Lemon Squeezy customer id 明文，故障碼格式為 `CLWD-AREA-NNNN`。
 
@@ -267,12 +256,12 @@ npm run release:guard
 
 ## 發佈前檢查
 
-`npm run release:guard` 是 mock 候選版檢查，會確認 ClawDesk 品牌、Tauri 版本、legal manifest、bundle resources 與可用 artifact 狀態。這個模式允許 mock Gateway、mock Lemon Squeezy 與 mock Keygen，但報告會明確標示 `mock-candidate`，不能視為正式商業發佈。
+`npm run release:guard` 是 mock 候選版檢查，會確認 ClawDesk 品牌、Tauri 版本、legal manifest、bundle resources 與可用 artifact 狀態。這個模式允許 mock Gateway、mock Lemon Squeezy 與 mock Keygen，但報告會明確標示 `mock-candidate`，不能視為正式發布版本。
 
 桌面殼層有兩份 Tauri 設定：
 
 - `src-tauri/tauri.conf.json`：開發與 mock 候選版，會打包 `sidecars/mock-gateway/server.mjs`。
-- `src-tauri/tauri.prod.conf.json`：正式商業版，不打包 mock Gateway，只保留安裝條款與 OpenClaw MIT notice。正式版需由 `CLAWDESK_GATEWAY_BASE_URL` 指向 production Gateway，必要時用 `CLAWDESK_GATEWAY_WS_URL` 指定事件串流端點。
+- `src-tauri/tauri.prod.conf.json`：正式發布版，不打包 mock Gateway，只保留安裝條款與 OpenClaw upstream notice。正式版需由 `CLAWDESK_GATEWAY_BASE_URL` 指向 production Gateway，必要時用 `CLAWDESK_GATEWAY_WS_URL` 指定事件串流端點。
 
 正式 production 發佈需使用：
 
@@ -286,13 +275,13 @@ Release guard report 會輸出 production readiness matrix，分類包含：
 
 - Legal：安裝條款、NOTICE 與 legal manifest 是否同步。
 - Gateway：正式版是否已設定 production Gateway endpoint。
-- Payment：Lemon Squeezy API、webhook secret 與 store id 是否存在。
-- Licensing：Keygen account、product 與簽章公鑰是否存在。
+- Payment：僅作歷史/相容性驗證，不代表本倉庫提供收費功能。
+- Licensing：僅作歷史/相容性驗證，不代表本倉庫提供收費功能。
 - Identity：SSO issuer/client 是否存在。
 - macOS：Apple Team、Developer ID certificate 與 notarization credential 是否存在。
 - Packaging：正式打包 script 是否受 strict guard 保護、是否仍包含 mock resource、`.app` / `.dmg` artifact 是否存在。
 
-正式商業打包入口必須使用 guard-protected scripts：
+正式發布打包入口必須使用 guard-protected scripts：
 
 ```sh
 npm run tauri:build:prod:app
@@ -306,7 +295,7 @@ npm run sign:mac:notarize
 npm run release:mac:build-and-notarize
 ```
 
-這兩個指令會先執行 `CLAWDESK_RELEASE_CHANNEL=production npm run release:guard:strict`。只要仍打包 mock Gateway、缺少 Lemon Squeezy/Keygen/SSO production credentials、或缺少 Apple Developer ID 簽章/公證環境，就會在 build 前失敗，避免把 mock 候選版誤當正式商業版發佈。`sign:mac:notarize` 在 macOS 環境會進行 `codesign`/`notarytool`/`stapler` 的最終驗證並產出報告。
+這兩個指令會先執行 `CLAWDESK_RELEASE_CHANNEL=production npm run release:guard:strict`。只要仍打包 mock Gateway、缺少 Lemon Squeezy/Keygen/SSO production credentials、或缺少 Apple Developer ID 簽章/公證環境，就會在 build 前失敗，避免把 mock 候選版誤當正式發布版。`sign:mac:notarize` 在 macOS 環境會進行 `codesign`/`notarytool`/`stapler` 的最終驗證並產出報告。
 
 Rust Gateway adapter 的啟動順序：
 
