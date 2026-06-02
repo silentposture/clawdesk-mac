@@ -10,13 +10,13 @@ New public documentation is written in English first; legacy Chinese text remain
 
 ## Current Focus
 
-- 優先支援 macOS 桌面 app 體驗。
-- 產品名稱、Tauri `productName` 與視窗標題為 `ClawDesk`；npm package、Cargo crate 與 bundle identifier 保留原值以避免破壞 build path。
-- Tauri 視窗使用 macOS overlay title bar，頂部區域保留交通燈按鈕空間。
-- 打包目標先鎖定 `.app` 與 `.dmg`。
-- 核心功能預設全部開放，不設付費解鎖或功能鎖；授權與帳號面板僅保留作相容性、測試與協作驗證。
-- macOS 桌面代理能力採 AX-first：先讀 Accessibility tree 與 active window metadata，再做低風險預演；高風險操作固定停在人工授權提示，不自動執行。
-- Windows 版本在 [ClawDesk Windows repo](https://github.com/silentposture/clawdesk)；Linux 原生整合先保留架構接口，不作為目前主要開發目標。
+- Prioritize the macOS desktop app experience.
+- Keep the product name, Tauri `productName`, and window title as `ClawDesk`; keep the npm package, Cargo crate, and bundle identifier unchanged to avoid breaking the build path.
+- Use the macOS overlay title bar and preserve space for the traffic-light buttons.
+- Target `.app` and `.dmg` packaging first.
+- Keep all core features open by default, with no paid unlocks or feature locks; the license and account panels are retained only for compatibility, testing, and collaboration verification.
+- Use AX-first for the macOS desktop agent: read the Accessibility tree and active window metadata first, then rehearse low-risk actions; high-risk actions always stop at a manual approval prompt and never auto-run.
+- The Windows version lives in [ClawDesk Windows repo](https://github.com/silentposture/clawdesk); Linux native integration remains as an architectural interface and is not a primary development target right now.
 
 ## Browser Dev Mode
 
