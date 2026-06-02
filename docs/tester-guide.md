@@ -147,7 +147,7 @@ ClawDesk 版本：
 
 - 目前是 mock-candidate，不是正式商業 production build。
 - 尚未完成 Apple Developer ID 簽章與 notarization。
-- Paddle、Keygen、SSO、ChatGPT Pro OAuth 與 production gateway 尚未連接真實 production credentials。
+- Lemon Squeezy、Keygen、SSO、ChatGPT Pro OAuth 與 production gateway 尚未連接真實 production credentials。
 - Native WebView 內部署面板按鈕尚未做滑鼠點擊級自動化驗證。
 - DMG 內包含 backend simulator resources，僅供 mock-candidate 與本機驗證使用。
 

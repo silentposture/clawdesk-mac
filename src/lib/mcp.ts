@@ -14,6 +14,13 @@ export interface McpProtocol {
   localAdapter?: boolean;
 }
 
+export interface McpScopeGrant {
+  id: string;
+  label: string;
+  risk: McpRisk;
+  requiredFor: string[];
+}
+
 export interface McpTool {
   id: string;
   name: string;
@@ -65,6 +72,29 @@ export interface McpConnector {
   description: string;
   tools: McpTool[];
   protocols?: McpProtocol[];
+  scopes?: McpScopeGrant[];
+  revokeSupported?: boolean;
+  auditSupported?: boolean;
+}
+
+export interface McpConnectionGrant {
+  grantId: string;
+  connectorId: string;
+  status: "active" | "revoked";
+  scopes: string[];
+  issuedAt: string;
+  revokedAt?: string | null;
+  expiresAt?: string | null;
+  auditId: string;
+}
+
+export interface McpAuditEvent {
+  id: string;
+  action: string;
+  connectorId: string;
+  scopeCount?: number;
+  status?: string;
+  createdAt: string;
 }
 
 export interface McpActionPreview {
@@ -81,6 +111,12 @@ export interface McpActionPreview {
     auth: string;
     transport: McpProtocol["transport"];
   };
+  grant?: {
+    grantId?: string;
+    status: "active" | "revoked" | "missing";
+    scopes: string[];
+    missingScopes: string[];
+  };
 }
 
 export const microsoftOfficeToolIds = [
@@ -96,6 +132,13 @@ export const microsoftOfficeToolIds = [
 export function summarizeConnector(connector: McpConnector): string {
   const connected = connector.status === "connected" ? "已連線" : "未連線";
   return `${connector.name}：${mcpTierLabel(connector.tier)}，${connected}，${connector.tools.length} 個工具`;
+}
+
+export function recommendedScopes(connector: McpConnector): string[] {
+  if (connector.scopes?.length) {
+    return connector.scopes.filter((scope) => scope.risk !== "high").map((scope) => scope.id);
+  }
+  return connector.protocols?.flatMap((protocol) => protocol.scopes ?? []).slice(0, 4) ?? [];
 }
 
 export function mcpTierLabel(tier: McpTier): string {

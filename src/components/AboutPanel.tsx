@@ -113,6 +113,9 @@ export function AboutPanel({ gateway, gatewayStatus, identityIsDeveloper, onClos
             <h3>{t("about.product")}</h3>
             <dl className="status-list">
               <div><dt>{t("about.productName")}</dt><dd>{versionSummary.productName}</dd></div>
+              <div><dt>{t("about.developer")}</dt><dd>{versionSummary.developer}</dd></div>
+              <div><dt>{t("about.developerType")}</dt><dd>{versionSummary.developerType}</dd></div>
+              <div><dt>{t("about.contact")}</dt><dd>{versionSummary.contactEmail}</dd></div>
               <div><dt>{t("about.version")}</dt><dd>{versionSummary.version}</dd></div>
               <div><dt>{t("about.buildId")}</dt><dd>{versionSummary.buildId}</dd></div>
               <div><dt>{t("about.releaseChannel")}</dt><dd>{versionSummary.releaseChannel}</dd></div>
@@ -136,12 +139,12 @@ export function AboutPanel({ gateway, gatewayStatus, identityIsDeveloper, onClos
             <KeyRound size={23} />
             <h3>{t("about.license")}</h3>
             <dl className="status-list">
-              <div><dt>{t("about.paymentProvider")}</dt><dd>{fallback(license?.paymentProvider)}</dd></div>
-              <div><dt>{t("about.licenseProvider")}</dt><dd>{fallback(license?.licenseProvider)}</dd></div>
-              <div><dt>{t("about.plan")}</dt><dd>{fallback(license?.plan)}</dd></div>
+              <div><dt>{t("about.paymentProvider")}</dt><dd>{fallback(license?.commerceProvider ?? license?.paymentProvider)}</dd></div>
+              <div><dt>{t("about.licenseProvider")}</dt><dd>{fallback(license?.entitlementAuthority ?? license?.licenseProvider)}</dd></div>
+              <div><dt>{t("about.plan")}</dt><dd>{fallback(license?.canonicalPlanKey ?? license?.plan)}</dd></div>
               <div><dt>{t("about.licenseStatus")}</dt><dd>{fallback(license?.status)}</dd></div>
               <div><dt>{t("about.onlineValidation")}</dt><dd>{fallback(license?.onlineValidationStatus ?? license?.keygenStatusCode ?? license?.lastValidationCode)}</dd></div>
-              <div><dt>{t("about.offlineGrace")}</dt><dd>{fallback(license?.offlineGraceUntil ?? license?.offlineGrace)}</dd></div>
+              <div><dt>{t("about.offlineGrace")}</dt><dd>{fallback(license?.graceUntilUtc ?? license?.offlineGraceUntil ?? license?.offlineGrace)}</dd></div>
             </dl>
           </section>
 
@@ -152,7 +155,7 @@ export function AboutPanel({ gateway, gatewayStatus, identityIsDeveloper, onClos
               <div><dt>{t("about.currentVersion")}</dt><dd>{fallback(update?.currentVersion)}</dd></div>
               <div><dt>{t("about.latestVersion")}</dt><dd>{fallback(update?.latestVersion)}</dd></div>
               <div><dt>{t("about.eligibleVersion")}</dt><dd>{fallback(update?.eligibleLatestVersion)}</dd></div>
-              <div><dt>{t("about.supportUntil")}</dt><dd>{fallback(update?.supportUpdatesUntil ?? license?.supportUpdatesUntil)}</dd></div>
+              <div><dt>{t("about.supportUntil")}</dt><dd>{fallback(update?.supportUpdatesUntil ?? license?.updatesUntilUtc ?? license?.supportUpdatesUntil)}</dd></div>
               <div><dt>{t("about.canInstall")}</dt><dd>{fallback(update?.canInstallLatest)}</dd></div>
             </dl>
           </section>

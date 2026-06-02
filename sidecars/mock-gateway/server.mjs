@@ -114,10 +114,10 @@ const llmProviderCatalog = [
     shortName: "OpenAI Codex",
     displayName: "OpenAI Codex",
     authMode: "oauth",
-    modelPlaceholder: "gpt-5.3-codex",
-    modelDefault: "gpt-5.3-codex",
+    modelPlaceholder: "gpt-5.5",
+    modelDefault: "gpt-5.5",
     accountPlaceholder: "OpenAI Codex 帳號 Email",
-    description: "Codex OAuth 模式（可作為 ChatGPT Pro 的上游供應鏈參考）。",
+    description: "OpenAI Codex / ChatGPT OAuth。依 OpenClaw 規則，登入 profile 可供 canonical openai/gpt-* route 使用。",
   },
   {
     id: "openai",
@@ -151,6 +151,76 @@ const llmProviderCatalog = [
     keyPlaceholder: "sk-ant-...",
     keyPrefixes: ["sk-ant-", "sk-ant-api03-"],
     description: "Anthropic Claude 系列 API。",
+  },
+  {
+    id: "anthropic-vertex",
+    shortName: "Anthropic Vertex",
+    displayName: "Anthropic Vertex",
+    authMode: "api-key",
+    modelPlaceholder: "anthropic-vertex/claude-sonnet-4-5",
+    modelDefault: "anthropic-vertex/claude-sonnet-4-5",
+    keyPlaceholder: "GOOGLE_APPLICATION_CREDENTIALS / Vertex auth",
+    description: "OpenClaw provider docs: Anthropic Vertex provider。",
+  },
+  {
+    id: "alibaba",
+    shortName: "Alibaba",
+    displayName: "Alibaba Cloud",
+    authMode: "api-key",
+    modelPlaceholder: "alibaba/qwen-plus",
+    modelDefault: "alibaba/qwen-plus",
+    keyPlaceholder: "ALIBABA_API_KEY",
+    description: "OpenClaw provider docs: Alibaba / DashScope 類模型入口。",
+  },
+  {
+    id: "arcee",
+    shortName: "Arcee",
+    displayName: "Arcee",
+    authMode: "api-key",
+    modelPlaceholder: "arcee/default",
+    modelDefault: "arcee/default",
+    keyPlaceholder: "ARCEE_API_KEY",
+    description: "OpenClaw provider docs: Arcee model provider。",
+  },
+  {
+    id: "bedrock",
+    shortName: "Bedrock",
+    displayName: "AWS Bedrock",
+    authMode: "api-key",
+    modelPlaceholder: "bedrock/anthropic.claude-sonnet-4-5",
+    modelDefault: "bedrock/anthropic.claude-sonnet-4-5",
+    keyPlaceholder: "AWS credentials profile",
+    description: "OpenClaw provider docs: AWS Bedrock provider。",
+  },
+  {
+    id: "bedrock-mantle",
+    shortName: "Bedrock Mantle",
+    displayName: "Bedrock Mantle",
+    authMode: "api-key",
+    modelPlaceholder: "bedrock-mantle/default",
+    modelDefault: "bedrock-mantle/default",
+    keyPlaceholder: "AWS credentials profile",
+    description: "OpenClaw provider docs: Bedrock Mantle provider。",
+  },
+  {
+    id: "chutes",
+    shortName: "Chutes",
+    displayName: "Chutes",
+    authMode: "api-key",
+    modelPlaceholder: "chutes/default",
+    modelDefault: "chutes/default",
+    keyPlaceholder: "CHUTES_API_KEY",
+    description: "OpenClaw provider docs: Chutes provider。",
+  },
+  {
+    id: "claude-max-api-proxy",
+    shortName: "Claude Max Proxy",
+    displayName: "Claude Max API Proxy",
+    authMode: "api-key",
+    modelPlaceholder: "claude-max-api-proxy/claude",
+    modelDefault: "claude-max-api-proxy/claude",
+    keyPlaceholder: "CLAUDE_MAX_API_PROXY_KEY",
+    description: "OpenClaw provider docs: Claude Max API Proxy。",
   },
   {
     id: "google",
@@ -207,6 +277,17 @@ const llmProviderCatalog = [
     description: "聚合式入口。",
   },
   {
+    id: "perplexity",
+    shortName: "Perplexity",
+    displayName: "Perplexity",
+    authMode: "api-key",
+    modelPlaceholder: "perplexity/sonar-pro",
+    modelDefault: "perplexity/sonar-pro",
+    keyPlaceholder: "PPLX_API_KEY",
+    keyPrefixes: ["pplx-", "sk-"],
+    description: "OpenClaw provider docs: Perplexity provider。",
+  },
+  {
     id: "byteplus",
     shortName: "BytePlus",
     displayName: "BytePlus",
@@ -239,6 +320,36 @@ const llmProviderCatalog = [
     description: "Cloudflare AI Gateway OpenAI 相容轉發。",
   },
   {
+    id: "azure-speech",
+    shortName: "Azure Speech",
+    displayName: "Azure Speech",
+    authMode: "api-key",
+    modelPlaceholder: "azure-speech/default",
+    modelDefault: "azure-speech/default",
+    keyPlaceholder: "AZURE_SPEECH_KEY",
+    description: "OpenClaw provider docs: Azure Speech provider（語音能力，MVP 以 mock contract 呈現）。",
+  },
+  {
+    id: "comfy",
+    shortName: "ComfyUI",
+    displayName: "ComfyUI",
+    authMode: "local-endpoint",
+    modelPlaceholder: "comfy/workflow",
+    modelDefault: "comfy/workflow",
+    endpointPlaceholder: "http://127.0.0.1:8188",
+    description: "OpenClaw provider docs: ComfyUI provider（影像工作流，本機 endpoint）。",
+  },
+  {
+    id: "deepgram",
+    shortName: "Deepgram",
+    displayName: "Deepgram",
+    authMode: "api-key",
+    modelPlaceholder: "deepgram/nova-3",
+    modelDefault: "deepgram/nova-3",
+    keyPlaceholder: "DEEPGRAM_API_KEY",
+    description: "OpenClaw provider docs: Deepgram provider（語音辨識）。",
+  },
+  {
     id: "deepseek",
     shortName: "DeepSeek",
     displayName: "DeepSeek",
@@ -259,6 +370,118 @@ const llmProviderCatalog = [
     keyPlaceholder: "DEEPINFRA_API_KEY",
     keyPrefixes: ["sk-"],
     description: "DeepInfra OpenAI 相容模型。",
+  },
+  {
+    id: "ds4",
+    shortName: "DS4",
+    displayName: "DS4",
+    authMode: "api-key",
+    modelPlaceholder: "ds4/default",
+    modelDefault: "ds4/default",
+    keyPlaceholder: "DS4_API_KEY",
+    description: "OpenClaw provider docs: DS4 provider。",
+  },
+  {
+    id: "elevenlabs",
+    shortName: "ElevenLabs",
+    displayName: "ElevenLabs",
+    authMode: "api-key",
+    modelPlaceholder: "elevenlabs/voice",
+    modelDefault: "elevenlabs/voice",
+    keyPlaceholder: "ELEVENLABS_API_KEY",
+    description: "OpenClaw provider docs: ElevenLabs provider（語音合成）。",
+  },
+  {
+    id: "fal",
+    shortName: "fal",
+    displayName: "fal.ai",
+    authMode: "api-key",
+    modelPlaceholder: "fal/default",
+    modelDefault: "fal/default",
+    keyPlaceholder: "FAL_KEY",
+    description: "OpenClaw provider docs: fal provider。",
+  },
+  {
+    id: "fireworks",
+    shortName: "Fireworks",
+    displayName: "Fireworks AI",
+    authMode: "api-key",
+    modelPlaceholder: "fireworks/accounts/fireworks/models/deepseek-v3",
+    modelDefault: "fireworks/accounts/fireworks/models/deepseek-v3",
+    keyPlaceholder: "FIREWORKS_API_KEY",
+    description: "OpenClaw provider docs: Fireworks provider。",
+  },
+  {
+    id: "gradium",
+    shortName: "Gradium",
+    displayName: "Gradium",
+    authMode: "api-key",
+    modelPlaceholder: "gradium/default",
+    modelDefault: "gradium/default",
+    keyPlaceholder: "GRADIUM_API_KEY",
+    description: "OpenClaw provider docs: Gradium provider。",
+  },
+  {
+    id: "glm",
+    shortName: "GLM",
+    displayName: "GLM / Zhipu",
+    authMode: "api-key",
+    modelPlaceholder: "glm/glm-4.6",
+    modelDefault: "glm/glm-4.6",
+    keyPlaceholder: "GLM_API_KEY",
+    description: "OpenClaw provider docs: GLM provider。",
+  },
+  {
+    id: "inferrs",
+    shortName: "Inferrs",
+    displayName: "Inferrs",
+    authMode: "api-key",
+    modelPlaceholder: "inferrs/default",
+    modelDefault: "inferrs/default",
+    keyPlaceholder: "INFERRS_API_KEY",
+    description: "OpenClaw provider docs: Inferrs provider。",
+  },
+  {
+    id: "index",
+    shortName: "Index",
+    displayName: "Index",
+    authMode: "api-key",
+    modelPlaceholder: "index/default",
+    modelDefault: "index/default",
+    keyPlaceholder: "INDEX_API_KEY",
+    description: "OpenClaw provider docs: Index provider。",
+  },
+  {
+    id: "inworld",
+    shortName: "Inworld",
+    displayName: "Inworld",
+    authMode: "api-key",
+    modelPlaceholder: "inworld/default",
+    modelDefault: "inworld/default",
+    keyPlaceholder: "INWORLD_API_KEY",
+    description: "OpenClaw provider docs: Inworld provider。",
+  },
+  {
+    id: "litellm",
+    shortName: "LiteLLM",
+    displayName: "LiteLLM",
+    authMode: "api-key",
+    modelPlaceholder: "litellm/openai/gpt-4.1",
+    modelDefault: "litellm/openai/gpt-4.1",
+    keyPlaceholder: "LITELLM_API_KEY",
+    endpointPlaceholder: "http://localhost:4000",
+    description: "OpenClaw provider docs: LiteLLM proxy provider。",
+  },
+  {
+    id: "microsoft-foundry",
+    shortName: "Microsoft Foundry",
+    displayName: "Microsoft Foundry",
+    authMode: "api-key",
+    modelPlaceholder: "microsoft-foundry/gpt-4.1",
+    modelDefault: "microsoft-foundry/gpt-4.1",
+    keyPlaceholder: "AZURE_AI_FOUNDRY_API_KEY",
+    endpointPlaceholder: "https://resource.services.ai.azure.com",
+    description: "OpenClaw provider docs: Microsoft Foundry / Azure AI provider。",
   },
   {
     id: "github-copilot",
@@ -388,6 +611,16 @@ const llmProviderCatalog = [
     description: "Runway 模型供應層。",
   },
   {
+    id: "senseaudio",
+    shortName: "SenseAudio",
+    displayName: "SenseAudio",
+    authMode: "api-key",
+    modelPlaceholder: "senseaudio/default",
+    modelDefault: "senseaudio/default",
+    keyPlaceholder: "SENSEAUDIO_API_KEY",
+    description: "OpenClaw provider docs: SenseAudio provider（語音能力）。",
+  },
+  {
     id: "stepfun",
     shortName: "StepFun",
     displayName: "StepFun",
@@ -408,6 +641,26 @@ const llmProviderCatalog = [
     keyPlaceholder: "STEPFUN_API_KEY",
     keyPrefixes: ["sk-", "sf_"],
     description: "StepFun coding surface。",
+  },
+  {
+    id: "synthetic",
+    shortName: "Synthetic",
+    displayName: "Synthetic",
+    authMode: "api-key",
+    modelPlaceholder: "synthetic/default",
+    modelDefault: "synthetic/default",
+    keyPlaceholder: "SYNTHETIC_API_KEY",
+    description: "OpenClaw provider docs: Synthetic provider。",
+  },
+  {
+    id: "tencent",
+    shortName: "Tencent",
+    displayName: "Tencent Cloud",
+    authMode: "api-key",
+    modelPlaceholder: "tencent/hunyuan",
+    modelDefault: "tencent/hunyuan",
+    keyPlaceholder: "TENCENT_API_KEY",
+    description: "OpenClaw provider docs: Tencent provider。",
   },
   {
     id: "together",
@@ -544,6 +797,16 @@ const llmProviderCatalog = [
     modelDefault: "deepseek-ai/DeepSeek-R1",
     keyPlaceholder: "HF_TOKEN",
     description: "Hugging Face Inference。",
+  },
+  {
+    id: "vydra",
+    shortName: "Vydra",
+    displayName: "Vydra",
+    authMode: "api-key",
+    modelPlaceholder: "vydra/default",
+    modelDefault: "vydra/default",
+    keyPlaceholder: "VYDRA_API_KEY",
+    description: "OpenClaw provider docs: Vydra provider。",
   },
   {
     id: "qwen-portal",
@@ -928,6 +1191,15 @@ const mcpConnectors = [
         localAdapter: true,
       },
     ],
+    scopes: [
+      { id: "Files.Read", label: "讀取 OneDrive/Office 檔案", risk: "low", requiredFor: ["word.summarize", "excel.inspect", "onedrive.search"] },
+      { id: "Files.ReadWrite", label: "建立文件草稿與修訂", risk: "medium", requiredFor: ["word.redline", "excel.build-chart", "powerpoint.outline"] },
+      { id: "Mail.ReadWrite", label: "讀取與建立 Outlook 草稿", risk: "medium", requiredFor: ["outlook.draft-reply"] },
+      { id: "Calendars.Read", label: "讀取行事曆可用時間", risk: "low", requiredFor: ["outlook.draft-reply"] },
+      { id: "Teams.ReadBasic.All", label: "讀取 Teams 基本頻道資訊", risk: "medium", requiredFor: ["outlook.draft-reply"] },
+    ],
+    revokeSupported: true,
+    auditSupported: true,
     tools: [
       {
         id: "word.summarize",
@@ -1015,6 +1287,16 @@ const mcpConnectors = [
         localAdapter: true,
       },
     ],
+    scopes: [
+      { id: "https://www.googleapis.com/auth/drive.readonly", label: "讀取 Drive 檔案", risk: "low", requiredFor: ["drive.search", "docs.summarize"] },
+      { id: "https://www.googleapis.com/auth/documents.readonly", label: "讀取 Docs", risk: "low", requiredFor: ["docs.summarize"] },
+      { id: "https://www.googleapis.com/auth/spreadsheets", label: "讀取/更新 Sheets 草稿", risk: "medium", requiredFor: ["sheets.inspect"] },
+      { id: "https://www.googleapis.com/auth/gmail.compose", label: "建立 Gmail 草稿", risk: "medium", requiredFor: ["gmail.draft"] },
+      { id: "https://www.googleapis.com/auth/calendar.events", label: "建立 Calendar 草稿", risk: "medium", requiredFor: ["calendar.plan"] },
+      { id: "https://www.googleapis.com/auth/chrome.management.readonly", label: "讀取 Chrome 管理狀態", risk: "low", requiredFor: ["browser.open"] },
+    ],
+    revokeSupported: true,
+    auditSupported: true,
     tools: [
       {
         id: "drive.search",
@@ -1074,6 +1356,25 @@ const mcpConnectors = [
     status: "available",
     transport: "mock",
     description: "內建網際網路連線、瀏覽器檢索與螢幕 GUI 視覺辨識 adapter。",
+    protocols: [
+      {
+        id: "chrome-devtools-protocol",
+        name: "Chrome DevTools Protocol",
+        auth: "本機瀏覽器授權",
+        transport: "websocket",
+        description: "以受控 Chrome session 做開頁、DOM 觀察與截圖摘要；高風險操作需使用者授權。",
+        scopes: ["browser.read", "browser.open", "screen.summary"],
+        endpoints: ["ws://127.0.0.1:<debug-port>/devtools/browser"],
+        localAdapter: true,
+      },
+    ],
+    scopes: [
+      { id: "browser.read", label: "讀取目前網頁資訊", risk: "low", requiredFor: ["browser.search"] },
+      { id: "browser.open", label: "開啟指定網址", risk: "medium", requiredFor: ["browser.open"] },
+      { id: "screen.summary", label: "螢幕 GUI 摘要", risk: "high", requiredFor: ["screen.vision"] },
+    ],
+    revokeSupported: true,
+    auditSupported: true,
     tools: [
       {
         id: "browser.search",
@@ -1109,6 +1410,35 @@ const mcpConnectors = [
     status: "available",
     transport: "mock",
     description: "VS Code、Xcode、JetBrains、GitHub、GitLab、Docker 與 Terminal 的開發 MCP adapter 預覽。",
+    protocols: [
+      {
+        id: "github-mcp",
+        name: "GitHub MCP / REST",
+        auth: "OAuth 2.0 / fine-grained token",
+        transport: "https",
+        description: "讀取 repository、issue、pull request 與 workflow log；寫入動作預設只產生草稿。",
+        scopes: ["repo:read", "issues:read", "pull_requests:read", "actions:read"],
+        endpoints: ["https://api.github.com/"],
+      },
+      {
+        id: "local-terminal-mcp",
+        name: "Local Terminal MCP",
+        auth: "本機授權",
+        transport: "stdio",
+        description: "本機 terminal 指令只做計畫與預演；執行前必須人工授權。",
+        scopes: ["terminal.plan", "workspace.read"],
+        localAdapter: true,
+      },
+    ],
+    scopes: [
+      { id: "repo:read", label: "讀取 GitHub repository", risk: "low", requiredFor: ["github.issue.triage"] },
+      { id: "issues:read", label: "讀取 GitHub issues", risk: "low", requiredFor: ["github.issue.triage"] },
+      { id: "actions:read", label: "讀取 CI workflow log", risk: "medium", requiredFor: ["github.issue.triage"] },
+      { id: "terminal.plan", label: "產生 Terminal 指令計畫", risk: "high", requiredFor: ["terminal.command.plan"] },
+      { id: "workspace.read", label: "讀取本機專案工作區", risk: "low", requiredFor: ["vscode.workspace.inspect", "xcode.project.inspect"] },
+    ],
+    revokeSupported: true,
+    auditSupported: true,
     tools: [
       {
         id: "vscode.workspace.inspect",
@@ -1176,6 +1506,23 @@ const mcpConnectors = [
     status: "available",
     transport: "mock",
     description: "CAD、CAE、數值分析與工程 notebook 的 MCP adapter 預覽。",
+    protocols: [
+      {
+        id: "engineering-local-adapters",
+        name: "Engineering Local Adapters",
+        auth: "本機授權",
+        transport: "stdio",
+        description: "工程軟體先以本機檔案/專案摘要 adapter 連接，不直接寫入 CAD/CAE 檔案。",
+        scopes: ["engineering.files.read", "engineering.metadata.read"],
+        localAdapter: true,
+      },
+    ],
+    scopes: [
+      { id: "engineering.files.read", label: "讀取工程檔案摘要", risk: "medium", requiredFor: ["autocad.drawing.inspect", "fusion360.model.review", "solidworks.assembly.inspect"] },
+      { id: "engineering.metadata.read", label: "讀取工程 metadata", risk: "low", requiredFor: ["matlab.script.review", "jupyter.notebook.inspect"] },
+    ],
+    revokeSupported: true,
+    auditSupported: true,
     tools: [
       {
         id: "autocad.drawing.inspect",
@@ -1227,6 +1574,27 @@ const mcpConnectors = [
     status: "available",
     transport: "mock",
     description: "AWS、Azure、Google Cloud、Cloudflare、Vercel 與 Supabase 的雲端 MCP adapter 預覽。",
+    protocols: [
+      {
+        id: "cloud-provider-apis",
+        name: "Cloud Provider APIs",
+        auth: "OAuth 2.0 / short-lived service token",
+        transport: "https",
+        description: "讀取雲端資源、成本與部署狀態；變更前固定走 permission.request。",
+        scopes: ["aws.readonly", "azure.readonly", "gcp.readonly", "cloudflare.dns.read", "vercel.read", "supabase.read"],
+        endpoints: ["https://api.aws.amazon.com/", "https://management.azure.com/", "https://cloudresourcemanager.googleapis.com/"],
+      },
+    ],
+    scopes: [
+      { id: "aws.readonly", label: "AWS 唯讀", risk: "medium", requiredFor: ["aws.cost.inspect"] },
+      { id: "azure.readonly", label: "Azure 唯讀", risk: "medium", requiredFor: ["azure.resource.inspect"] },
+      { id: "gcp.readonly", label: "Google Cloud 唯讀", risk: "medium", requiredFor: ["gcp.project.inspect"] },
+      { id: "cloudflare.dns.read", label: "Cloudflare DNS 讀取", risk: "medium", requiredFor: ["cloudflare.dns.preview"] },
+      { id: "vercel.read", label: "Vercel 部署讀取", risk: "medium", requiredFor: ["vercel.deploy.inspect"] },
+      { id: "supabase.read", label: "Supabase 專案讀取", risk: "medium", requiredFor: ["supabase.project.inspect"] },
+    ],
+    revokeSupported: true,
+    auditSupported: true,
     tools: [
       {
         id: "aws.cost.inspect",
@@ -1348,6 +1716,8 @@ const workflowTemplates = [
   },
 ];
 const scheduledWorkflows = [];
+let mcpConnectionGrants = [];
+let mcpAuditEvents = [];
 const mediaCapabilities = [
   {
     id: "video-avfoundation",
@@ -1466,65 +1836,49 @@ let machineFingerprint = {
 
 let licenseMachines = [];
 let licenseStatus = {
-  paymentProvider: "paddle",
+  paymentProvider: "lemon-squeezy",
   licenseProvider: "keygen",
+  commerceProvider: "lemon-squeezy",
+  entitlementAuthority: "universal-server",
+  productKey: "clawdesk",
+  canonicalPlanKey: "clawdesk.free",
   plan: "hobby",
   status: "free",
   seats: 1,
   supportUpdatesUntil: "2026-05-12",
+  updatesUntilUtc: "2026-05-12T00:00:00.000Z",
   eligibleLatestVersion: "1.0.0",
   offlineGraceUntil: null,
+  graceUntilUtc: null,
   features: ["safe-mode", "local-chat", "manual-permissions"],
   deviceLimit: 1,
+  activeDeviceCount: 0,
   machines: licenseMachines,
   lastValidationCode: "HOBBY_MODE",
 };
 
 const pricingPlans = [
   {
-    id: "free-trial",
+    id: "trial",
     name: "Free Trial",
     priceUsd: 0,
-    cadence: "trial",
+    cadence: "free",
     description: "本機安全沙盒、手動授權與基本桌面工作流試用。",
   },
   {
-    id: "monthly",
-    name: "Monthly",
-    priceUsd: 9,
-    cadence: "monthly",
-    description: "桌面 AI 工作平台月繳方案；不販售模型算力，模型由使用者帳號或 API 供應。",
-  },
-  {
-    id: "yearly",
-    name: "Yearly",
+    id: "pro-yearly",
+    name: "Pro Yearly",
     priceUsd: 79,
     cadence: "yearly",
     description: "桌面 AI 工作平台年繳方案，含支援更新資格。",
   },
   {
-    id: "lifetime",
+    id: "lifetime-local",
     name: "Lifetime",
     priceUsd: 99,
     cadence: "one-time",
     supportUpdatesMonths: 12,
     description: "永久本機功能，含 12 個月支援更新。",
-  },
-  {
-    id: "early-bird",
-    name: "Early Bird",
-    priceUsd: 69,
-    cadence: "one-time",
-    supportUpdatesMonths: 12,
-    description: "早鳥一次買斷名額，適合 side-project 商業 Beta 內測。",
-  },
-  {
-    id: "update-maintenance",
-    name: "Update Maintenance",
-    priceUsd: 29,
-    cadence: "maintenance",
-    supportUpdatesMonths: 12,
-    description: "買斷版支援更新續費，延長可安裝新版本資格一年。",
   },
 ];
 ensureSeedIdentityUsers();
@@ -1533,7 +1887,7 @@ const updateHistory = [
   {
     version: "1.4.0",
     releasedAt: "2027-01-15",
-    notes: ["Paddle + Keygen production adapter", "MCP connector policy audit", "macOS memory pressure tuning"],
+    notes: ["Lemon Squeezy + Keygen production adapter", "MCP connector policy audit", "macOS memory pressure tuning"],
   },
   {
     version: "1.0.0",
@@ -1556,10 +1910,23 @@ const legalDocuments = [
   {
     id: "commercial-license",
     title: "ClawDesk 商業授權",
-    summary: "ClawDesk GUI、記憶、Agent、授權、模仿學習與商業功能採閉源商業授權。",
+    summary: "ClawDesk 由 Alisonsoftware 開發；GUI、記憶、Agent、授權、模仿學習與商業功能採閉源商業授權。",
     details: [
+      "開發者顯示名稱：Alisonsoftware。",
+      "開發者型態：個人開發者，非公司、法人、合夥或代理商名稱。",
+      "聯絡信箱：huangkuoling@gmail.com。",
       "使用者取得有限、非專屬、不可轉讓、可撤銷的使用授權。",
       "使用者不取得 ClawDesk 原始碼、商標、授權後台或商業資料的所有權。",
+    ],
+  },
+  {
+    id: "individual-developer-disclosure",
+    title: "個人開發者揭露",
+    summary: "Alisonsoftware 是個人開發者顯示名稱；正式銷售渠道若要求 trader / seller / developer contact information，需另行揭露必要資料。",
+    details: [
+      "一般支援、授權啟用、故障回報、隱私詢問與商業合作可先透過 huangkuoling@gmail.com 聯絡。",
+      "付款、稅務、收據、退款與拒付由 Lemon Squeezy 作為 Merchant of Record 依其流程處理。",
+      "ClawDesk 不直接處理信用卡資料，也不在桌面端保存付款帳號明文。",
     ],
   },
   {
@@ -1567,7 +1934,7 @@ const legalDocuments = [
     title: "訂閱、自動續費與取消揭露",
     summary: "訂閱方案需在購買與安裝前揭露價格、續費週期、取消入口、退款規則與適用消費者權利。",
     details: [
-      "Paddle 作為 Merchant of Record，正式版付款、稅務、收據與取消入口由 Paddle 流程承接。",
+      "Lemon Squeezy 作為唯一 Merchant of Record，正式版付款、稅務、收據與取消入口由 Lemon Squeezy 流程承接。",
       "Keygen 管理授權、機器綁定、撤銷、離線票券與支援更新資格。",
       "美國、加州、歐盟、台灣與其他銷售地區可能有不同自動續費、遠距交易與數位內容規範。",
     ],
@@ -1620,7 +1987,7 @@ const legalNotices = [
   { package: "Vite", license: "MIT", purpose: "前端建置" },
   { package: "lucide-react", license: "ISC", purpose: "介面圖示" },
   { package: "Keygen", license: "Commercial SaaS", purpose: "正式版授權管控，MVP 使用 mock" },
-  { package: "Paddle", license: "Commercial SaaS", purpose: "正式版金流與稅務，MVP 使用 mock" },
+  { package: "Lemon Squeezy", license: "Commercial SaaS", purpose: "正式版金流與稅務，MVP 使用 mock" },
 ];
 
 const enterpriseKnowledgeSources = [
@@ -1667,7 +2034,7 @@ let contextStatus = {
   modelContextLimit: 128000,
   estimatedTokens: 18400,
   rollingSummary: "目前專案正在建立 ClawDesk 商業化桌面 MVP。",
-  pinnedFacts: ["品牌名稱 ClawDesk", "Paddle 收款、Keygen 授權", "專案外改動需人工授權"],
+  pinnedFacts: ["品牌名稱 ClawDesk", "Lemon Squeezy 收款、Keygen 授權", "專案外改動需人工授權"],
   compressionRatio: 1,
   lastCompressedAt: null,
 };
@@ -1870,6 +2237,8 @@ function snapshotState() {
     ergonomicsChecks,
     diagnosticReports,
     auditEvents,
+    mcpConnectionGrants,
+    mcpAuditEvents,
   };
 }
 
@@ -1899,6 +2268,8 @@ function applyPersistedState(state) {
   if (Array.isArray(state.ergonomicsChecks)) ergonomicsChecks = state.ergonomicsChecks;
   mergeArray(diagnosticReports, state.diagnosticReports);
   if (Array.isArray(state.auditEvents)) auditEvents = state.auditEvents.slice(0, 500);
+  if (Array.isArray(state.mcpConnectionGrants)) mcpConnectionGrants = state.mcpConnectionGrants.slice(0, 500);
+  if (Array.isArray(state.mcpAuditEvents)) mcpAuditEvents = state.mcpAuditEvents.slice(0, 500);
   ensureSeedIdentityUsers();
 }
 
@@ -1987,6 +2358,11 @@ async function callBackendApi(pathname, options = {}) {
   } catch (error) {
     return { ok: false, status: 0, payload: { error: String(error?.message ?? "backend unreachable") }, networkError: true };
   }
+}
+
+function backendResponseStatus(response) {
+  if (Number.isInteger(response?.status) && response.status > 0) return response.status;
+  return response?.ok ? 200 : 502;
 }
 
 function getBackendIdentityToken() {
@@ -2164,25 +2540,37 @@ function toLicenseStatusFromBackendLicense(licensePayload, machinePayload, statu
   const statusValue = String(payload.status ?? statusOverride.status ?? "free");
   const isActive = ["active", "updated"].includes(statusValue.toLowerCase()) || statusValue === "past-due";
   const seats = Number(payload.deviceLimit ?? 1);
+  const activeDeviceCount = Array.isArray(payload.machines)
+    ? payload.machines.length
+    : machine.machineFingerprintHash
+      ? 1
+      : 0;
   return {
-    paymentProvider: "paddle",
+    paymentProvider: "lemon-squeezy",
     licenseProvider: "keygen",
+    commerceProvider: payload.commerceProvider ?? "lemon-squeezy",
+    entitlementAuthority: payload.entitlementAuthority ?? "universal-server",
+    productKey: payload.productKey ?? "clawdesk",
+    canonicalPlanKey: payload.canonicalPlanKey ?? "clawdesk.free",
     plan: payload.plan ?? "hobby",
     status: statusValue,
     seats: Number.isFinite(seats) && seats > 0 ? seats : 1,
     supportUpdatesUntil: payload.supportUpdatesUntil ?? "2026-05-12",
+    updatesUntilUtc: payload.updatesUntilUtc ?? (payload.supportUpdatesUntil ? `${payload.supportUpdatesUntil}T00:00:00.000Z` : null),
     eligibleLatestVersion: payload.plan && payload.plan.includes("pro")
       ? "1.4.0"
       : payload.plan === "hobby"
         ? "0.1.0"
         : "1.4.0",
     offlineGraceUntil: payload.offlineGraceUntil ?? null,
+    graceUntilUtc: payload.graceUntilUtc ?? null,
     features: payload.features && Array.isArray(payload.features)
       ? payload.features
       : isActive
         ? ["pro-agent", "local-memory", "workflow-builder", "mcp-connectors", "diagnostics"]
         : ["safe-mode", "local-chat", "manual-permissions"],
     deviceLimit: Number.isFinite(seats) && seats > 0 ? seats : 1,
+    activeDeviceCount,
     machines: Array.isArray(payload.machines)
       ? payload.machines
       : machine.machineFingerprintHash
@@ -2203,7 +2591,10 @@ function toLicenseStatusFromBackendLicense(licensePayload, machinePayload, statu
       signatureStatus: payload.signatureStatus ?? "valid",
       storedAs: "backend issued signed Keygen offline license file",
     },
-    lastValidationCode: statusOverride.lastValidationCode ?? (isActive ? "KEYGEN_VALID" : "KEYGEN_WAIT"),
+    lemonSqueezyInstanceId: payload.lemonSqueezyInstanceId ?? payload.instance?.id ?? statusOverride.instanceId,
+    lemonSqueezyLicenseKeyId: payload.lemonSqueezyLicenseKeyId,
+    onlineValidationStatus: isActive ? "valid" : "skipped",
+    lastValidationCode: statusOverride.lastValidationCode ?? (isActive ? "LEMON_SQUEEZY_VALID" : "LEMON_SQUEEZY_WAIT"),
   };
 }
 
@@ -2251,7 +2642,8 @@ function backendReadiness() {
       stateFilePath: persistenceEnabled ? stateFilePath : null,
     },
     providers: {
-      payment: "paddle-mock",
+      payment: "lemon-squeezy-mock",
+      betaPayment: "lemon-squeezy-mock",
       licensing: "keygen-mock",
       identity: "email-password-sso-mock",
       mail: "mock-outbox",
@@ -2277,7 +2669,8 @@ function backendDeploymentPlan() {
     productionModules: [
       "Gateway API / WebSocket event service",
       "Identity service with email verification and SSO",
-      "Paddle webhook service",
+      "Lemon Squeezy webhook service",
+      "Lemon Squeezy beta webhook service",
       "Keygen license adapter",
       "Notification service",
       "Audit and diagnostics store",
@@ -2287,7 +2680,7 @@ function backendDeploymentPlan() {
       "OPENCLAW_MOCK_PORT",
       "CLAWDESK_MOCK_STATE_FILE",
       "NODE_ENV",
-      "PADDLE_WEBHOOK_SECRET",
+      "LEMON_SQUEEZY_WEBHOOK_SECRET",
       "KEYGEN_ACCOUNT_ID",
       "KEYGEN_PRODUCT_ID",
       "KEYGEN_TOKEN",
@@ -2348,14 +2741,20 @@ function applyDeveloperLicenseBypass() {
 
   licenseMachines = licenseMachines.filter((machine) => !machine.revokedAt);
   licenseStatus = {
-    paymentProvider: "paddle",
+    paymentProvider: "lemon-squeezy",
     licenseProvider: "keygen",
+    commerceProvider: "lemon-squeezy",
+    entitlementAuthority: "universal-server",
+    productKey: "clawdesk",
+    canonicalPlanKey: "clawdesk.lifetime_updates_1y_2dev",
     plan: "lifetime-local",
     status: "active",
     seats: 10,
     supportUpdatesUntil: "2099-12-31",
+    updatesUntilUtc: "2099-12-31T00:00:00.000Z",
     eligibleLatestVersion: "1.8.0",
     offlineGraceUntil: "2099-12-31",
+    graceUntilUtc: "2099-12-31T00:00:00.000Z",
     features: [
       "pro-agent",
       "local-memory",
@@ -2367,6 +2766,7 @@ function applyDeveloperLicenseBypass() {
       "model-routing",
     ],
     deviceLimit: 10,
+    activeDeviceCount: licenseMachines.length,
     machines: licenseMachines,
     licenseFile: {
       keyId: "kg_dev_master",
@@ -2385,16 +2785,23 @@ function applyDeveloperLicenseBypass() {
 function safeModeLicense(validationCode) {
   licenseMachines = [];
   licenseStatus = {
-    paymentProvider: "paddle",
+    paymentProvider: "lemon-squeezy",
     licenseProvider: "keygen",
+    commerceProvider: "lemon-squeezy",
+    entitlementAuthority: "universal-server",
+    productKey: "clawdesk",
+    canonicalPlanKey: "clawdesk.free",
     plan: "hobby",
     status: validationCode.includes("TAMPER") ? "tampered" : validationCode.includes("REVOK") ? "revoked" : "free",
     seats: 1,
     supportUpdatesUntil: "2026-05-12",
+    updatesUntilUtc: "2026-05-12T00:00:00.000Z",
     eligibleLatestVersion: "1.0.0",
     offlineGraceUntil: null,
+    graceUntilUtc: null,
     features: ["safe-mode", "local-chat", "manual-permissions"],
     deviceLimit: 1,
+    activeDeviceCount: 0,
     machines: licenseMachines,
     lastValidationCode: validationCode,
   };
@@ -2431,16 +2838,23 @@ function activateLicense(encodedKey) {
     ];
   }
   licenseStatus = {
-    paymentProvider: "paddle",
+    paymentProvider: "lemon-squeezy",
     licenseProvider: "keygen",
+    commerceProvider: "lemon-squeezy",
+    entitlementAuthority: "universal-server",
+    productKey: "clawdesk",
+    canonicalPlanKey: payload.plan === "lifetime-local" ? "clawdesk.lifetime_updates_1y_1dev" : payload.plan === "pro-yearly" ? "clawdesk.subscription.yearly.2dev" : "clawdesk.free",
     plan: payload.plan,
     status: "active",
     seats: payload.plan === "team" ? 10 : 1,
     supportUpdatesUntil: payload.supportUpdatesUntil,
+    updatesUntilUtc: payload.supportUpdatesUntil ? `${payload.supportUpdatesUntil}T00:00:00.000Z` : null,
     eligibleLatestVersion: "1.4.0",
     offlineGraceUntil: "2026-06-11",
+    graceUntilUtc: "2026-06-11T00:00:00.000Z",
     features: ["pro-agent", "local-memory", "workflow-builder", "mcp-connectors", "diagnostics"],
     deviceLimit: payload.deviceLimit,
+    activeDeviceCount: licenseMachines.filter((machine) => !machine.revokedAt).length,
     machines: licenseMachines,
     licenseFile: {
       keyId: payload.keyId,
@@ -2448,7 +2862,9 @@ function activateLicense(encodedKey) {
       signatureStatus: payload.signatureStatus,
       storedAs: "mock signed Keygen offline ticket",
     },
-    lastValidationCode: "KEYGEN_VALID",
+    lemonSqueezyInstanceId: `lsinst_${machineFingerprint.fingerprintHash.slice(-8)}`,
+    onlineValidationStatus: "valid",
+    lastValidationCode: "LEMON_SQUEEZY_VALID",
   };
   audit("license.activate", { keyId: payload.keyId, plan: payload.plan, status: licenseStatus.status });
   scheduleStateSave();
@@ -2456,17 +2872,48 @@ function activateLicense(encodedKey) {
 }
 
 function updateInfo() {
-  const latest = updateHistory[0];
-  const canInstallLatest = licenseStatus.status === "active" && Date.parse(licenseStatus.supportUpdatesUntil) >= Date.parse(latest.releasedAt);
+  const manifest = releaseManifest();
+  const latest = manifest.releases[0];
+  const supportUntil = Date.parse(licenseStatus.supportUpdatesUntil ?? "");
+  const eligible = manifest.releases.find((release) => Number.isFinite(supportUntil) && supportUntil >= Date.parse(release.releasedAt)) ?? manifest.releases[manifest.releases.length - 1];
+  const canInstallLatest = licenseStatus.status === "active" && eligible.version === latest.version;
   return {
-    currentVersion: "0.1.0",
+    currentVersion: manifest.currentVersion,
     latestVersion: latest.version,
-    eligibleLatestVersion: licenseStatus.eligibleLatestVersion,
+    eligibleLatestVersion: eligible.version,
     supportUpdatesUntil: licenseStatus.supportUpdatesUntil,
     canInstallLatest,
-    downloadUrl: canInstallLatest ? "https://example.com/clawdesk/releases/1.4.0" : null,
+    downloadUrl: canInstallLatest ? latest.downloads.macosUniversal : null,
     releaseNotes: latest.notes,
     requiresRenewal: !canInstallLatest,
+  };
+}
+
+function releaseManifest() {
+  return {
+    product: "ClawDesk",
+    channel: "stable",
+    currentVersion: "0.1.0",
+    latestVersion: updateHistory[0].version,
+    generatedAt: nowIso(),
+    policy: {
+      supportUpdatesUntilField: "license.supportUpdatesUntil",
+      eligibilityRule: "可安裝版本 releasedAt 必須早於或等於 supportUpdatesUntil；到期後仍可使用最後符合資格版本。",
+      autoUpdate: false,
+      tauriUpdaterFuture: true,
+    },
+    releases: updateHistory.map((release) => ({
+      version: release.version,
+      releasedAt: release.releasedAt,
+      minSupportUpdatesUntil: release.releasedAt,
+      downloads: {
+        macosAppleSilicon: `https://downloads.clawdesk.example/macos/arm64/ClawDesk-${release.version}-arm64.dmg`,
+        macosUniversal: `https://downloads.clawdesk.example/macos/universal/ClawDesk-${release.version}-universal.dmg`,
+      },
+      releaseNotes: release.notes.join("\n"),
+      notes: release.notes,
+      sha256: `mock-sha256-${release.version.replaceAll(".", "-")}`,
+    })),
   };
 }
 
@@ -2496,7 +2943,7 @@ function createDiagnosticReport(body = {}) {
   const timestamp = nowIso();
   const recentErrors = [
     redactDiagnosticText(body.lastError ?? "CLWD-GW-2001 mock gateway recent warning"),
-    `Keygen validation=${licenseStatus.lastValidationCode ?? "none"} Paddle event=${body.paddleEventType ?? "none"}`,
+    `Keygen validation=${licenseStatus.lastValidationCode ?? "none"} Lemon Squeezy event=${body.lemonSqueezyEventType ?? "none"}`,
   ];
   const report = {
     reportId: `diag-${Date.now()}`,
@@ -2734,6 +3181,61 @@ function mcpPreview(connector, tool, target) {
         }
       : undefined,
   };
+}
+
+function connectorScopes(connector) {
+  const explicit = Array.isArray(connector?.scopes) ? connector.scopes : [];
+  if (explicit.length > 0) return explicit;
+  const protocolScopes = (connector?.protocols ?? []).flatMap((protocol) => protocol.scopes ?? []);
+  return [...new Set(protocolScopes)].map((scope) => ({ id: scope, label: scope, risk: "medium", requiredFor: [] }));
+}
+
+function recordMcpAudit(action, connectorId, details = {}) {
+  const event = {
+    id: crypto.randomUUID(),
+    action,
+    connectorId,
+    createdAt: nowIso(),
+    ...details,
+  };
+  mcpAuditEvents.unshift(event);
+  mcpAuditEvents = mcpAuditEvents.slice(0, 500);
+  audit(`mcp.${action}`, { connectorId, ...details });
+  return event;
+}
+
+function activeMcpGrant(connectorId) {
+  return mcpConnectionGrants.find((grant) => grant.connectorId === connectorId && grant.status === "active");
+}
+
+function createMcpGrant(connector, requestedScopes = []) {
+  const allowedScopes = connectorScopes(connector);
+  const allowedIds = new Set(allowedScopes.map((scope) => scope.id));
+  const selected = (Array.isArray(requestedScopes) ? requestedScopes : []).filter((scope) => allowedIds.has(scope));
+  const scopes = selected.length > 0 ? selected : allowedScopes.filter((scope) => scope.risk !== "high").map((scope) => scope.id);
+  const auditEvent = recordMcpAudit("connect", connector.id, {
+    scopeCount: scopes.length,
+    status: "active",
+    highRiskScopes: scopes.filter((scope) => allowedScopes.find((item) => item.id === scope)?.risk === "high"),
+  });
+  const grant = {
+    grantId: crypto.randomUUID(),
+    connectorId: connector.id,
+    status: "active",
+    scopes,
+    issuedAt: nowIso(),
+    revokedAt: null,
+    expiresAt: "2026-06-13T23:59:59.999Z",
+    auditId: auditEvent.id,
+  };
+  mcpConnectionGrants = [
+    grant,
+    ...mcpConnectionGrants.map((item) =>
+      item.connectorId === connector.id && item.status === "active" ? { ...item, status: "revoked", revokedAt: nowIso() } : item,
+    ),
+  ].slice(0, 500);
+  connector.status = "connected";
+  return grant;
 }
 
 function channelById(channelId) {
@@ -3037,9 +3539,11 @@ async function streamDemo(conversationId, prompt) {
   const messageId = `agent-${Date.now()}`;
   const providerLabel = providerDisplayLabel(providerSession.activeProvider ?? "mock");
   const modelLabel = providerSession.model ?? "未指定模型";
+  const subscriptionAccountProvider =
+    providerSession.activeProvider === "chatgpt-pro" || providerSession.activeProvider === "openai-codex";
   const routeLabel =
-    providerSession.activeProvider === "chatgpt-pro" && providerSession.accountEmail
-      ? `Cloud-Main（${providerSession.accountEmail}）`
+    subscriptionAccountProvider && providerSession.accountEmail
+      ? `帳號登入路由（${providerSession.accountEmail}）`
       : "自訂供應商路由";
   const providerPrefix =
     providerSession.activeProvider === "mock"
@@ -3195,6 +3699,125 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && pathname === "/api/auth/me") {
+    if (identityBackendEnabled && getBackendIdentityToken()) {
+      const response = await callBackendApi("/api/auth/me", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${getBackendIdentityToken()}` },
+      });
+      if (response?.ok) {
+        json(res, 200, response.payload);
+        return;
+      }
+      if (!response?.networkError) {
+        if (response.status === 401) setBackendIdentityToken("");
+        json(res, backendResponseStatus(response), response.payload);
+        return;
+      }
+    }
+    json(res, 401, { ok: false, error: "Invalid session" });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/account/entitlements") {
+    if (!identityBackendEnabled || !getBackendIdentityToken()) {
+      json(res, 401, { ok: false, error: "Invalid session" });
+      return;
+    }
+    const response = await callBackendApi("/api/account/entitlements", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${getBackendIdentityToken()}` },
+    });
+    json(res, backendResponseStatus(response), response?.payload ?? { ok: false, error: "backend unreachable" });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/license/public-keys") {
+    if (!identityBackendEnabled) {
+      json(res, 503, { ok: false, error: "identity backend unavailable" });
+      return;
+    }
+    const response = await callBackendApi("/api/license/public-keys");
+    json(res, backendResponseStatus(response), response?.payload ?? { ok: false, error: "backend unreachable" });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/license/activate") {
+    try {
+      const body = await readJson(req);
+      if (!identityBackendEnabled) {
+        json(res, 503, { ok: false, error: "identity backend unavailable" });
+        return;
+      }
+      await resolveBackendMachineFingerprint();
+      const response = await callBackendApi("/api/license/activate", { method: "POST", body });
+      if (response?.ok) {
+        backendLicenseState.licenseKey = body.orderNo ?? body.licenseKey ?? backendLicenseState.licenseKey;
+        backendLicenseState.machineFingerprintHash = body.hwid ?? machineFingerprint.fingerprintHash;
+      }
+      json(res, backendResponseStatus(response), response?.payload ?? { ok: false, error: "backend unreachable" });
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/license/validate") {
+    try {
+      const response = await callBackendApi("/api/license/validate", {
+        method: "POST",
+        body: await readJson(req),
+      });
+      json(res, backendResponseStatus(response), response?.payload ?? { ok: false, error: "backend unreachable" });
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/license/refresh-certificate") {
+    try {
+      const response = await callBackendApi("/api/license/refresh-certificate", {
+        method: "POST",
+        body: await readJson(req),
+      });
+      json(res, backendResponseStatus(response), response?.payload ?? { ok: false, error: "backend unreachable" });
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/license/deactivate") {
+    try {
+      const response = await callBackendApi("/api/license/deactivate", {
+        method: "POST",
+        body: await readJson(req),
+      });
+      if (response?.ok) {
+        backendLicenseState.licenseKey = "";
+        backendLicenseState.offlineTicket = "";
+      }
+      json(res, backendResponseStatus(response), response?.payload ?? { ok: false, error: "backend unreachable" });
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/license/me") {
+    if (!identityBackendEnabled || !getBackendIdentityToken()) {
+      json(res, 401, { ok: false, error: "Invalid session" });
+      return;
+    }
+    const response = await callBackendApi("/api/license/me", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${getBackendIdentityToken()}` },
+    });
+    json(res, backendResponseStatus(response), response?.payload ?? { ok: false, error: "backend unreachable" });
+    return;
+  }
+
   if (req.method === "GET" && pathname === "/license/status") {
     if (identityBackendEnabled && backendLicenseState.licenseKey) {
       const response = await callBackendApi("/license/status", {
@@ -3248,10 +3871,12 @@ const server = http.createServer(async (req, res) => {
           backendLicenseState.licenseKey = body.licenseKey ?? body.encodedKey ?? "";
           backendLicenseState.machineFingerprintHash = machineFingerprint.fingerprintHash;
           backendLicenseState.offlineTicket = next.offlineTicket?.token;
+          backendLicenseState.lemonSqueezyInstanceId = next.instance?.id ?? next.license?.lemonSqueezyInstanceId;
           const nextStatus = mapBackendLicenseEndpointResponse(next.license || next, {
             status: response.status >= 200 && response.status < 300 ? "active" : "free",
+            instanceId: backendLicenseState.lemonSqueezyInstanceId,
           });
-          licenseStatus = { ...nextStatus, paymentProvider: "paddle", licenseProvider: "keygen" };
+          licenseStatus = { ...nextStatus, paymentProvider: "lemon-squeezy", licenseProvider: "keygen" };
           json(res, 200, { status: licenseStatus, fingerprint: machineFingerprint });
           return;
         }
@@ -3430,75 +4055,93 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && pathname === "/webhooks/paddle/mock") {
+    json(res, 410, {
+      accepted: false,
+      provider: "paddle",
+      error: "Paddle payment channel is disabled. Use /webhooks/lemon-squeezy/mock.",
+    });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/webhooks/lemon-squeezy/mock") {
     try {
       const body = await readJson(req);
-      const eventType = body.eventType ?? "transaction.completed";
-      const backendEventType = {
-        "lifetime.purchased": "subscription.created",
-        "transaction.completed": "payment_succeeded",
-        "subscription.created": "subscription.created",
-        "subscription.renewed": "renewed",
-        "subscription.updated-failed": "subscription.updated-failed",
-        "subscription.payment_failed": "payment_failed",
-        "payment_failed": "payment_failed",
-        "transaction.failed": "payment_failed",
-        "transaction.refunded": "subscription.canceled",
-        "subscription.canceled": "subscription.canceled",
-        "support.renewed": "renewed",
-      }[eventType] ?? eventType;
-      const licenseKey = typeof body.licenseKey === "string" && body.licenseKey.trim() ? body.licenseKey : backendLicenseState.licenseKey || "CLWD-LIFETIME-LOCAL-2026";
+      const eventType = body.eventType ?? "order_created";
+      const plan = body.plan ?? "yearly";
+      const licenseKey = body.licenseKey ?? `CLWD-LEMON-SQZ01-BETA1-${String(Date.now()).slice(-5)}`;
       if (identityBackendEnabled) {
-        const response = await callBackendApi("/webhooks/paddle", {
+        const response = await callBackendApi("/webhooks/lemon-squeezy", {
           method: "POST",
           body: {
-            eventType: backendEventType,
+            eventType,
+            plan,
             licenseKey,
-            note: body.note ?? `frontend-webhook-${eventType}`,
+            machineFingerprintHash: machineFingerprint.fingerprintHash,
+            note: body.note ?? "desktop-lemon-squeezy",
           },
         });
         if (response?.ok) {
-          const newStatus = mapBackendLicenseEndpointResponse(response.payload, {
-            status: licenseStatus.status,
-            supportUpdatesUntil: licenseStatus.supportUpdatesUntil,
-          });
+          const next = response.payload?.license ?? {};
           licenseStatus = {
             ...licenseStatus,
-            ...newStatus,
-            paymentProvider: "paddle",
+            paymentProvider: "lemon-squeezy",
             licenseProvider: "keygen",
-            lastValidationCode: `PADDLE_${eventType}`,
+            plan: next.plan ?? (String(plan).includes("monthly") ? "pro-monthly" : String(plan).includes("lifetime") ? "lifetime-local" : "pro-yearly"),
+            status: next.status ?? "active",
+            supportUpdatesUntil: next.supportUpdatesUntil ?? licenseStatus.supportUpdatesUntil,
+            eligibleLatestVersion: "1.8.0",
+            features: [...new Set([...(licenseStatus.features ?? []), "lemon-squeezy-payment", "license-auto-issue"])],
+            deviceLimit: 3,
+            machines: licenseMachines,
+            lastValidationCode: `LEMON_SQUEEZY_${eventType}`,
+            licenseFile: {
+              provider: "lemon-squeezy",
+              storedAs: "backend issued signed Keygen offline license file",
+              token: next.licenseFile ? "[REDACTED:LICENSE_FILE]" : null,
+            },
           };
-          audit("webhook.paddle", { eventType, licenseStatus: licenseStatus.status, plan: licenseStatus.plan });
+          audit("webhook.lemon-squeezy", { eventType, licenseStatus: licenseStatus.status, plan: licenseStatus.plan });
           scheduleStateSave();
-          json(res, 200, { accepted: true, provider: "paddle", eventType, status: licenseStatus, backend: true });
+          json(res, 200, {
+            accepted: true,
+            provider: "lemon-squeezy",
+            eventType,
+            licenseKey: next.key ?? licenseKey,
+            status: licenseStatus,
+            backend: true,
+          });
           return;
         }
         if (!response?.networkError) {
-          json(res, response.status, { accepted: false, provider: "paddle", eventType, ...response.payload });
+          json(res, response.status, { accepted: false, provider: "lemon-squeezy", eventType, ...response.payload });
           return;
         }
       }
-      if (["transaction.completed", "subscription.created", "subscription.renewed", "lifetime.purchased", "payment_succeeded", "renewed", "support.renewed"].includes(eventType)) {
+      if (["order_created", "license_key_created", "subscription_created", "subscription_payment_success", "subscription_payment_recovered"].includes(eventType)) {
         licenseStatus = {
           ...licenseStatus,
-          status: eventType === "transaction.refunded" ? "canceled" : "active",
-          plan: eventType === "lifetime.purchased" ? "lifetime-local" : "pro-yearly",
-          lastValidationCode: `PADDLE_${eventType}`,
+          paymentProvider: "lemon-squeezy",
+          licenseProvider: "keygen",
+          status: "active",
+          plan: String(plan).includes("monthly") ? "pro-monthly" : String(plan).includes("lifetime") ? "lifetime-local" : "pro-yearly",
+          supportUpdatesUntil: String(plan).includes("monthly") ? "2026-06-12" : "2027-05-12",
+          eligibleLatestVersion: "1.8.0",
+          features: [...new Set([...(licenseStatus.features ?? []), "lemon-squeezy-payment", "license-auto-issue"])],
+          lastValidationCode: `LEMON_SQUEEZY_${eventType}`,
+          licenseFile: {
+            provider: "lemon-squeezy",
+            storedAs: "mock issued Keygen-compatible license file",
+            token: "[REDACTED:LICENSE_FILE]",
+          },
         };
-      } else if (["subscription.payment_failed", "payment_failed", "subscription.updated-failed"].includes(eventType)) {
-        licenseStatus = { ...licenseStatus, status: "past-due", lastValidationCode: `PADDLE_${eventType}` };
-      } else if (["subscription.canceled", "transaction.refunded"].includes(eventType)) {
-        licenseStatus = { ...licenseStatus, status: "canceled", lastValidationCode: `PADDLE_${eventType}` };
+      } else if (["subscription_payment_failed"].includes(eventType)) {
+        licenseStatus = { ...licenseStatus, paymentProvider: "lemon-squeezy", status: "past-due", lastValidationCode: `LEMON_SQUEEZY_${eventType}` };
+      } else if (["subscription_cancelled", "subscription_expired", "subscription_payment_refunded", "order_refunded"].includes(eventType)) {
+        licenseStatus = { ...licenseStatus, paymentProvider: "lemon-squeezy", status: "revoked", lastValidationCode: `LEMON_SQUEEZY_${eventType}` };
       }
-      if (eventType === "support.renewed") {
-        licenseStatus = { ...licenseStatus, supportUpdatesUntil: "2028-05-12", eligibleLatestVersion: "1.8.0", lastValidationCode: "PADDLE_SUPPORT_RENEWED" };
-      }
-      if (!["subscription.payment_failed", "payment_failed", "transaction.failed", "subscription.updated-failed"].includes(eventType) && !licenseStatus.plan) {
-        licenseStatus = { ...licenseStatus, plan: "lifetime-local" };
-      }
-      audit("webhook.paddle", { eventType, licenseStatus: licenseStatus.status, plan: licenseStatus.plan });
+      audit("webhook.lemon-squeezy", { eventType, licenseStatus: licenseStatus.status, plan: licenseStatus.plan });
       scheduleStateSave();
-      json(res, 200, { accepted: true, provider: "paddle", eventType, status: licenseStatus });
+      json(res, 200, { accepted: true, provider: "lemon-squeezy", eventType, licenseKey, status: licenseStatus });
     } catch {
       json(res, 400, { error: "Invalid JSON" });
     }
@@ -3565,6 +4208,18 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && pathname === "/updates/manifest") {
+    const manifest = releaseManifest();
+    json(res, 200, {
+      ...manifest,
+      eligibility: {
+        ...updateInfo(),
+        supportUpdatesUntil: licenseStatus.supportUpdatesUntil,
+      },
+    });
+    return;
+  }
+
   if (req.method === "GET" && pathname === "/updates/history") {
     if (identityBackendEnabled) {
       const response = await callBackendApi("/updates/history");
@@ -3586,11 +4241,12 @@ const server = http.createServer(async (req, res) => {
     const supportLicenseKey = backendLicenseState.licenseKey || "CLWD-LIFETIME-LOCAL-2026";
     if (identityBackendEnabled) {
       const latestCheck = await callBackendApi("/updates/check");
-      const response = await callBackendApi("/webhooks/paddle", {
+      const response = await callBackendApi("/webhooks/lemon-squeezy", {
         method: "POST",
         body: {
-          eventType: "subscription.created",
+          eventType: "subscription_payment_success",
           licenseKey: supportLicenseKey,
+          plan: "update-maintenance",
           note: "frontend-support-renewal",
         },
       });
@@ -3603,7 +4259,7 @@ const server = http.createServer(async (req, res) => {
           ...licenseStatus,
           supportUpdatesUntil: response.payload?.license?.supportUpdatesUntil ?? "2028-05-12",
           eligibleLatestVersion: "1.8.0",
-          lastValidationCode: "PADDLE_SUPPORT_RENEWED",
+          lastValidationCode: "LEMON_SQUEEZY_SUPPORT_RENEWED",
         };
         scheduleStateSave();
         json(res, 200, {
@@ -3621,7 +4277,7 @@ const server = http.createServer(async (req, res) => {
       json(res, 200, { status: applyDeveloperLicenseBypass(), update: updateInfo() });
       return;
     }
-    licenseStatus = { ...licenseStatus, supportUpdatesUntil: "2028-05-12", eligibleLatestVersion: "1.8.0", lastValidationCode: "PADDLE_SUPPORT_RENEWED" };
+    licenseStatus = { ...licenseStatus, paymentProvider: "lemon-squeezy", supportUpdatesUntil: "2028-05-12", eligibleLatestVersion: "1.8.0", lastValidationCode: "LEMON_SQUEEZY_SUPPORT_RENEWED" };
     audit("updates.renew-support", { supportUpdatesUntil: licenseStatus.supportUpdatesUntil });
     scheduleStateSave();
     json(res, 200, { status: licenseStatus, update: updateInfo() });
@@ -3638,7 +4294,7 @@ const server = http.createServer(async (req, res) => {
         json(res, 200, {
           autoCollected: true,
           autoUploaded: false,
-          privacyChecklist: ["不含 Email", "不含完整路徑", "不含完整金鑰", "不含 API key", "不含聊天內容", "不含螢幕截圖", "不含 Paddle customer id 明文", "法務同意僅含版本、hash、同意時間"],
+          privacyChecklist: ["不含 Email", "不含完整路徑", "不含完整金鑰", "不含 API key", "不含聊天內容", "不含螢幕截圖", "不含 Lemon Squeezy customer id 明文", "法務同意僅含版本、hash、同意時間"],
           preview: response.payload,
         });
         return;
@@ -3651,7 +4307,7 @@ const server = http.createServer(async (req, res) => {
     json(res, 200, {
       autoCollected: true,
       autoUploaded: false,
-      privacyChecklist: ["不含 Email", "不含完整路徑", "不含完整金鑰", "不含 API key", "不含聊天內容", "不含螢幕截圖", "不含 Paddle customer id 明文", "法務同意僅含版本、hash、同意時間"],
+      privacyChecklist: ["不含 Email", "不含完整路徑", "不含完整金鑰", "不含 API key", "不含聊天內容", "不含螢幕截圖", "不含 Lemon Squeezy customer id 明文", "法務同意僅含版本、hash、同意時間"],
       preview: createDiagnosticReport({ faultCode: "CLWD-GW-2001" }),
     });
     return;
@@ -4595,7 +5251,113 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && req.url === "/mcp/connectors") {
-    json(res, 200, { connectors: mcpConnectors });
+    json(res, 200, { connectors: mcpConnectors, grants: mcpConnectionGrants.filter((grant) => grant.status === "active") });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/mcp/connections") {
+    json(res, 200, {
+      grants: mcpConnectionGrants,
+      active: mcpConnectionGrants.filter((grant) => grant.status === "active"),
+    });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/mcp/microsoft/oauth/start") {
+    const scopes = (parsedUrl.searchParams.get("scopes") ?? "openid profile offline_access User.Read Files.Read Files.ReadWrite Mail.ReadWrite Calendars.Read")
+      .split(/[,\s]+/)
+      .map((scope) => scope.trim())
+      .filter(Boolean);
+    if (identityBackendEnabled) {
+      const response = await callBackendApi(`/mcp/microsoft/oauth/start?scopes=${encodeURIComponent(scopes.join(" "))}`);
+      if (response?.ok) {
+        json(res, 200, response.payload);
+        return;
+      }
+      if (!response?.networkError) {
+        json(res, response.status, response.payload);
+        return;
+      }
+    }
+    const stateValue = crypto.randomUUID();
+    const authorizationUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=mock-client-id&response_type=code&scope=${encodeURIComponent(scopes.join(" "))}&state=${encodeURIComponent(stateValue)}&code_challenge=mock-pkce&code_challenge_method=S256`;
+    const event = recordMcpAudit("microsoft.oauth.start", "microsoft-office", { status: "mock", scopeCount: scopes.length });
+    json(res, 200, {
+      provider: "microsoft-graph",
+      connectorId: "microsoft-office",
+      configured: false,
+      authorizationUrl,
+      state: stateValue,
+      redirectUri: "http://127.0.0.1:18890/mcp/microsoft/oauth/callback",
+      scopes,
+      codeChallengeMethod: "S256",
+      faultCode: "CLWD-MCP-MS-9001",
+      missingEnv: ["MICROSOFT_GRAPH_CLIENT_ID", "MICROSOFT_GRAPH_CLIENT_SECRET", "MICROSOFT_GRAPH_REDIRECT_URI"],
+      auditId: event.id,
+    });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/mcp/microsoft/oauth/callback") {
+    try {
+      const body = await readJson(req);
+      if (identityBackendEnabled) {
+        const response = await callBackendApi("/mcp/microsoft/oauth/callback", { method: "POST", body });
+        if (response?.ok) {
+          const connector = connectorById("microsoft-office");
+          if (connector) connector.status = "connected";
+          json(res, 200, response.payload);
+          return;
+        }
+        if (!response?.networkError) {
+          json(res, response.status, response.payload);
+          return;
+        }
+      }
+      if (!body.code || !body.state) {
+        json(res, 400, { error: "code and state are required", faultCode: "CLWD-MCP-MS-1000" });
+        return;
+      }
+      const connector = connectorById("microsoft-office");
+      const grant = createMcpGrant(connector, ["User.Read", "Files.Read", "Files.ReadWrite", "Mail.ReadWrite", "Calendars.Read"]);
+      recordMcpAudit("microsoft.oauth.callback", "microsoft-office", { status: "mock-active", scopeCount: grant.scopes.length });
+      scheduleStateSave();
+      json(res, 200, { connector: { ...connector, status: "connected" }, grant, provider: "microsoft-graph", tokenStorage: "mock-redacted" });
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/mcp/microsoft/oauth/revoke") {
+    if (identityBackendEnabled) {
+      const response = await callBackendApi("/mcp/microsoft/oauth/revoke", { method: "POST", body: {} });
+      if (response?.ok) {
+        const connector = connectorById("microsoft-office");
+        if (connector) connector.status = "available";
+        json(res, 200, response.payload);
+        return;
+      }
+      if (!response?.networkError) {
+        json(res, response.status, response.payload);
+        return;
+      }
+    }
+    const connector = connectorById("microsoft-office");
+    const timestamp = nowIso();
+    mcpConnectionGrants = mcpConnectionGrants.map((grant) =>
+      grant.connectorId === "microsoft-office" && grant.status === "active" ? { ...grant, status: "revoked", revokedAt: timestamp } : grant,
+    );
+    if (connector) connector.status = "available";
+    const auditEvent = recordMcpAudit("microsoft.oauth.revoke", "microsoft-office", { status: "revoked" });
+    scheduleStateSave();
+    json(res, 200, { revoked: true, connectorId: "microsoft-office", auditEvent });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/mcp/audit") {
+    const limit = Number(parsedUrl.searchParams.get("limit") ?? 50);
+    json(res, 200, { events: mcpAuditEvents.slice(0, Number.isFinite(limit) ? Math.max(1, Math.min(200, limit)) : 50), total: mcpAuditEvents.length });
     return;
   }
 
@@ -4772,15 +5534,41 @@ const server = http.createServer(async (req, res) => {
         json(res, 404, { error: "Unknown MCP connector" });
         return;
       }
-      connector.status = "connected";
-      audit("mcp.connect", { connectorId: connector.id });
+      const grant = createMcpGrant(connector, body.scopes);
       scheduleStateSave();
       broadcast({
         type: "gateway.status",
         status: "ready",
         detail: `${connector.name} 已啟用。`,
       });
-      json(res, 200, connector);
+      json(res, 200, { ...connector, grant });
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/mcp/revoke") {
+    try {
+      const body = await readJson(req);
+      const connector = connectorById(body.connectorId);
+      if (!connector) {
+        json(res, 404, { error: "Unknown MCP connector" });
+        return;
+      }
+      const timestamp = nowIso();
+      let revoked = false;
+      mcpConnectionGrants = mcpConnectionGrants.map((grant) => {
+        if (grant.connectorId === connector.id && grant.status === "active") {
+          revoked = true;
+          return { ...grant, status: "revoked", revokedAt: timestamp };
+        }
+        return grant;
+      });
+      connector.status = "available";
+      const auditEvent = recordMcpAudit("revoke", connector.id, { status: revoked ? "revoked" : "not-active", scopeCount: 0 });
+      scheduleStateSave();
+      json(res, 200, { connector, revoked, auditEvent, grants: mcpConnectionGrants.filter((grant) => grant.connectorId === connector.id) });
     } catch {
       json(res, 400, { error: "Invalid JSON" });
     }
@@ -4798,6 +5586,20 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const preview = mcpPreview(connector, tool, target);
+      const grant = activeMcpGrant(connector.id);
+      const grantedScopeSet = new Set(grant?.scopes ?? []);
+      const requiredScopes = connectorScopes(connector)
+        .filter((scope) => Array.isArray(scope.requiredFor) && scope.requiredFor.includes(tool.id))
+        .map((scope) => scope.id);
+      preview.grant = grant
+        ? {
+            grantId: grant.grantId,
+            status: grant.status,
+            scopes: grant.scopes,
+            missingScopes: requiredScopes.filter((scope) => !grantedScopeSet.has(scope)),
+          }
+        : { status: "missing", scopes: [], missingScopes: requiredScopes };
+      recordMcpAudit("preview", connector.id, { status: "planned", scopeCount: requiredScopes.length, toolId: tool.id });
       if (preview.requiresApproval) {
         const request = {
           type: "permission.request",
@@ -4902,6 +5704,30 @@ const server = http.createServer(async (req, res) => {
       };
       scheduleStateSave();
       audit("provider.oauth-chatgpt-pro", { model: providerSession.model });
+      json(res, 200, providerSession);
+    } catch {
+      json(res, 400, { error: "Invalid JSON" });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/auth/openai-codex/oauth-login") {
+    try {
+      const body = await readJson(req);
+      const response = setProviderBySpec("openai-codex", body);
+      if (!response.ok) {
+        json(res, 400, { error: response.payload });
+        return;
+      }
+      providerSession = {
+        ...providerSession,
+        displayName: "OpenAI Codex OAuth",
+        detail:
+          `OpenAI Codex OAuth 登入成功：${(body.accountEmail || "").trim()}。` +
+          "依 OpenClaw 規則，帳號登入 profile 可供 canonical openai/gpt-* route 使用；桌面端不保存密碼或 cookie。",
+      };
+      scheduleStateSave();
+      audit("provider.oauth-openai-codex", { model: providerSession.model });
       json(res, 200, providerSession);
     } catch {
       json(res, 400, { error: "Invalid JSON" });

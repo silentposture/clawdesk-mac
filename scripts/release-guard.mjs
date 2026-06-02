@@ -5,6 +5,14 @@ import path from "node:path";
 
 const cwd = process.cwd();
 
+function commandInvocation(command, args) {
+  if (process.platform !== "win32") return { command, args };
+  if (command.endsWith(".exe")) return { command, args };
+  const cmdCommand = command.endsWith(".cmd") ? command : `${command}.cmd`;
+  const quoted = cmdCommand.includes(" ") ? `"${cmdCommand}"` : cmdCommand;
+  return { command: "cmd.exe", args: ["/d", "/s", "/c", quoted, ...args] };
+}
+
 function parseArgs(argv) {
   return {
     strictProduction: argv.includes("--strict-production"),
@@ -37,7 +45,8 @@ async function pathExists(relativePath) {
 }
 
 function run(command, args) {
-  return spawnSync(command, args, {
+  const invocation = commandInvocation(command, args);
+  return spawnSync(invocation.command, invocation.args, {
     cwd,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -114,13 +123,13 @@ function buildReadinessMatrix(input) {
       nextAction: "建立 production Gateway / backend connector，替換 mock sidecar 合約。",
     },
     {
-      id: "paddle",
+      id: "lemon-squeezy",
       category: "payment",
-      label: "Paddle 金流環境",
-      status: readinessStatus(input.strictModeEnabled, input.hasPaddleCredentials),
-      current: input.hasPaddleCredentials ? "已設定 production credentials" : "目前僅 mock",
-      required: "正式版需 PADDLE_API_KEY 與 PADDLE_WEBHOOK_SECRET。",
-      nextAction: "在正式後端環境設定 Paddle credential，桌面端不得保存信用卡資料。",
+      label: "Lemon Squeezy 金流環境",
+      status: readinessStatus(input.strictModeEnabled, input.hasLemonSqueezyCredentials),
+      current: input.hasLemonSqueezyCredentials ? "已設定 production credentials" : "目前僅 mock",
+      required: "正式版需 LEMON_SQUEEZY_API_KEY、LEMON_SQUEEZY_WEBHOOK_SECRET、LEMON_SQUEEZY_STORE_ID。",
+      nextAction: "設定 Lemon Squeezy webhook secret，後端驗證 X-Signature 後發放授權。",
     },
     {
       id: "keygen",
@@ -139,6 +148,15 @@ function buildReadinessMatrix(input) {
       current: input.hasSsoCredentials ? "已設定 issuer/client" : "目前僅本機 mock 登入",
       required: "個人版與企業版都需 CLAWDESK_SSO_ISSUER_URL 與 CLAWDESK_SSO_CLIENT_ID。",
       nextAction: "接上 Apple / Google / Microsoft / Email 驗證與回信確認流程。",
+    },
+    {
+      id: "microsoft-graph",
+      category: "identity",
+      label: "Microsoft Graph MCP OAuth",
+      status: readinessStatus(input.strictModeEnabled, input.hasMicrosoftGraphCredentials),
+      current: input.hasMicrosoftGraphCredentials ? "已設定 Microsoft Graph OAuth app" : "尚未設定",
+      required: "需 MICROSOFT_GRAPH_TENANT_ID、MICROSOFT_GRAPH_CLIENT_ID、MICROSOFT_GRAPH_CLIENT_SECRET、MICROSOFT_GRAPH_REDIRECT_URI。",
+      nextAction: "在 Microsoft Entra 建立 app registration，設定 redirect URI 與 delegated Graph scopes。",
     },
     {
       id: "apple-signing-env",
@@ -284,14 +302,19 @@ async function main() {
 
   const productionEnvNames = [
     "CLAWDESK_GATEWAY_BASE_URL",
-    "PADDLE_API_KEY",
-    "PADDLE_WEBHOOK_SECRET",
+    "LEMON_SQUEEZY_API_KEY",
+    "LEMON_SQUEEZY_WEBHOOK_SECRET",
+    "LEMON_SQUEEZY_STORE_ID",
     "KEYGEN_ACCOUNT_ID",
     "KEYGEN_PRODUCT_ID",
     "KEYGEN_API_TOKEN",
     "KEYGEN_SIGNING_PUBLIC_KEY",
     "CLAWDESK_SSO_ISSUER_URL",
     "CLAWDESK_SSO_CLIENT_ID",
+    "MICROSOFT_GRAPH_TENANT_ID",
+    "MICROSOFT_GRAPH_CLIENT_ID",
+    "MICROSOFT_GRAPH_CLIENT_SECRET",
+    "MICROSOFT_GRAPH_REDIRECT_URI",
   ];
   const signingEnvNames = ["APPLE_TEAM_ID", "APPLE_ID"];
   const notarizationCredentialGroups = [
@@ -308,7 +331,7 @@ async function main() {
   const developerIdIdentities = signingIdentities.filter((identity) => identity.includes("Developer ID Application"));
 
   if (!strictModeEnabled) {
-    warnings.push("目前是 mock candidate 檢查：允許本機 mock Gateway 與 mock Paddle/Keygen，但不得視為正式商業發佈。");
+    warnings.push("目前是 mock candidate 檢查：允許本機 mock Gateway 與 mock Lemon Squeezy/Keygen，但不得視為正式商業發佈。");
     if (missingProductionEnv.length > 0) {
       warnings.push(`正式 production 尚缺環境變數：${missingProductionEnv.join(", ")}`);
     }
@@ -380,9 +403,10 @@ async function main() {
     strictModeEnabled,
     legalManifestCurrent: legalCheck.status === 0,
     hasProductionGateway: Boolean(process.env.CLAWDESK_GATEWAY_BASE_URL),
-    hasPaddleCredentials: missingEnv(["PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET"]).length === 0,
+    hasLemonSqueezyCredentials: missingEnv(["LEMON_SQUEEZY_API_KEY", "LEMON_SQUEEZY_WEBHOOK_SECRET", "LEMON_SQUEEZY_STORE_ID"]).length === 0,
     hasKeygenCredentials: missingEnv(["KEYGEN_ACCOUNT_ID", "KEYGEN_PRODUCT_ID", "KEYGEN_API_TOKEN", "KEYGEN_SIGNING_PUBLIC_KEY"]).length === 0,
     hasSsoCredentials: missingEnv(["CLAWDESK_SSO_ISSUER_URL", "CLAWDESK_SSO_CLIENT_ID"]).length === 0,
+    hasMicrosoftGraphCredentials: missingEnv(["MICROSOFT_GRAPH_TENANT_ID", "MICROSOFT_GRAPH_CLIENT_ID", "MICROSOFT_GRAPH_CLIENT_SECRET", "MICROSOFT_GRAPH_REDIRECT_URI"]).length === 0,
     hasAppleSigningEnv: missingSigningEnv.length === 0,
     hasNotarizationCredential,
     hasDeveloperIdIdentity: developerIdIdentities.length > 0,

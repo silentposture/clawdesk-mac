@@ -1,12 +1,14 @@
 import crypto from "node:crypto";
 import {
   mapKeygenEventToLicenseMutation,
+  mapLemonSqueezyEventToLicenseMutation,
   mapPaddleEventToLicenseMutation,
   summarizeProductionEnv,
 } from "../contracts.mjs";
 
 const DEFAULT_PADDLE_SIGNATURE_TOLERANCE_SECONDS = 300;
 const DEFAULT_KEYGEN_API_TIMEOUT_MS = 5000;
+const DEFAULT_LEMON_SQUEEZY_LICENSE_API_TIMEOUT_MS = 5000;
 const KEYGEN_ED25519_SPKI_PREFIX = "302a300506032b6570032100";
 const DESTRUCTIVE_KEYGEN_ACTION_PATTERN = /\/actions\/(?:revoke|suspend|reinstate|renew|check-in|check-out|increment-usage|decrement-usage|reset-usage)|\/machines(?:\/|$)|\/licenses\/[^/]+\/(?:users|entitlements|policy|owner|group)/;
 
@@ -63,6 +65,24 @@ export function verifyPaddleSignature({
   }
 
   return { ok: true, timestamp, signatureStatus: "valid" };
+}
+
+export function verifyLemonSqueezySignature({ rawBody, signatureHeader, secret } = {}) {
+  if (!secret) {
+    return { ok: false, statusCode: 503, faultCode: "CLWD-PAY-9101", error: "Lemon Squeezy webhook secret is not configured" };
+  }
+  if (typeof rawBody !== "string") {
+    return { ok: false, statusCode: 400, faultCode: "CLWD-PAY-1102", error: "Raw webhook body is required" };
+  }
+  const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+  if (typeof signature !== "string" || !signature.trim()) {
+    return { ok: false, statusCode: 401, faultCode: "CLWD-PAY-1101", error: "Missing Lemon Squeezy X-Signature header" };
+  }
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+  if (!timingSafeHexEqual(expected, signature.trim())) {
+    return { ok: false, statusCode: 401, faultCode: "CLWD-PAY-1105", error: "Lemon Squeezy signature mismatch" };
+  }
+  return { ok: true, signatureStatus: "valid" };
 }
 
 function base64DecodeToString(value) {
@@ -139,7 +159,11 @@ function sanitizeKeygenError(message) {
 
 function redactConfiguredSecrets(message, env) {
   let safe = sanitizeKeygenError(message);
-  for (const secret of [env.KEYGEN_API_TOKEN, env.PADDLE_API_KEY, env.PADDLE_WEBHOOK_SECRET]) {
+  for (const secret of [
+    env.KEYGEN_API_TOKEN,
+    env.LEMON_SQUEEZY_API_KEY,
+    env.LEMON_SQUEEZY_WEBHOOK_SECRET,
+  ]) {
     if (secret) safe = safe.split(secret).join("[REDACTED]");
   }
   return safe;
@@ -152,6 +176,133 @@ function keygenHeaders(env, hasBody) {
   };
   if (hasBody) headers["Content-Type"] = "application/vnd.api+json";
   return headers;
+}
+
+function normalizeLemonSqueezyLicenseApiBaseUrl(baseUrl) {
+  return String(baseUrl || "https://api.lemonsqueezy.com").trim().replace(/\/+$/, "");
+}
+
+export function buildLemonSqueezyLicenseApiUrl({ baseUrl = "https://api.lemonsqueezy.com", path }) {
+  const normalizedPath = String(path ?? "").startsWith("/") ? String(path) : `/${path}`;
+  return `${normalizeLemonSqueezyLicenseApiBaseUrl(baseUrl)}${normalizedPath}`;
+}
+
+function sanitizeLemonSqueezyError(message) {
+  return String(message ?? "Lemon Squeezy License API request failed")
+    .replace(/license_key=[^&\s]+/gi, "license_key=[REDACTED]")
+    .replace(/instance_id=[^&\s]+/gi, "instance_id=[REDACTED]");
+}
+
+function mapLemonSqueezyLicenseStatus(status) {
+  const normalized = String(status ?? "").toLowerCase();
+  if (normalized === "active" || normalized === "inactive") return "active";
+  if (normalized === "expired") return "expired";
+  if (normalized === "disabled") return "revoked";
+  return normalized || "unknown";
+}
+
+export async function lemonSqueezyLicenseApiRequest({
+  env = process.env,
+  fetchImpl = globalThis.fetch,
+  path,
+  form,
+  timeoutMs = DEFAULT_LEMON_SQUEEZY_LICENSE_API_TIMEOUT_MS,
+}) {
+  const url = buildLemonSqueezyLicenseApiUrl({ baseUrl: env.LEMON_SQUEEZY_LICENSE_API_BASE_URL, path });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetchImpl(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams(form).toString(),
+      signal: controller.signal,
+    });
+    const text = await response.text();
+    const payload = text ? JSON.parse(text) : {};
+    if (!response.ok) {
+      return {
+        ok: false,
+        statusCode: response.status,
+        faultCode: response.status >= 500 ? "CLWD-LIC-4001" : "CLWD-LIC-4002",
+        error: sanitizeLemonSqueezyError(payload?.error ?? "Lemon Squeezy License API returned an error"),
+        payload,
+      };
+    }
+    return { ok: true, statusCode: response.status, payload, url };
+  } catch (error) {
+    return {
+      ok: false,
+      statusCode: 503,
+      faultCode: "CLWD-LIC-4001",
+      error: sanitizeLemonSqueezyError(error?.name === "AbortError" ? "Lemon Squeezy License API request timed out" : error?.message),
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function activateLemonSqueezyLicenseKey({ env = process.env, fetchImpl, licenseKey, instanceName }) {
+  const key = String(licenseKey ?? "").trim();
+  const name = String(instanceName ?? "").trim();
+  if (!key || !name) {
+    return { ok: false, statusCode: 400, faultCode: "CLWD-LIC-4002", error: "licenseKey and instanceName are required" };
+  }
+  const result = await lemonSqueezyLicenseApiRequest({
+    env,
+    fetchImpl,
+    path: "/v1/licenses/activate",
+    form: { license_key: key, instance_name: name },
+  });
+  if (!result.ok) return result;
+  const activated = result.payload?.activated === true;
+  const status = mapLemonSqueezyLicenseStatus(result.payload?.license_key?.status);
+  return {
+    ...result,
+    ok: activated,
+    statusCode: activated ? 200 : 409,
+    activated,
+    status,
+    instanceId: result.payload?.instance?.id ?? null,
+    licenseKeyId: result.payload?.license_key?.id ?? null,
+    activationLimit: result.payload?.license_key?.activation_limit ?? null,
+    activationUsage: result.payload?.license_key?.activation_usage ?? null,
+    expiresAt: result.payload?.license_key?.expires_at ?? null,
+    error: activated ? null : result.payload?.error ?? "Lemon Squeezy license activation failed",
+  };
+}
+
+export async function validateLemonSqueezyLicenseKey({ env = process.env, fetchImpl, licenseKey, instanceId }) {
+  const key = String(licenseKey ?? "").trim();
+  const instance = String(instanceId ?? "").trim();
+  if (!key || !instance) {
+    return { ok: false, statusCode: 400, faultCode: "CLWD-LIC-4002", error: "licenseKey and instanceId are required" };
+  }
+  const result = await lemonSqueezyLicenseApiRequest({
+    env,
+    fetchImpl,
+    path: "/v1/licenses/validate",
+    form: { license_key: key, instance_id: instance },
+  });
+  if (!result.ok) return result;
+  const valid = result.payload?.valid === true;
+  const status = mapLemonSqueezyLicenseStatus(result.payload?.license_key?.status);
+  return {
+    ...result,
+    ok: valid && status === "active",
+    statusCode: valid && status === "active" ? 200 : 426,
+    valid,
+    status,
+    instanceId: result.payload?.instance?.id ?? instance,
+    licenseKeyId: result.payload?.license_key?.id ?? null,
+    activationLimit: result.payload?.license_key?.activation_limit ?? null,
+    activationUsage: result.payload?.license_key?.activation_usage ?? null,
+    expiresAt: result.payload?.license_key?.expires_at ?? null,
+    error: valid ? null : result.payload?.error ?? "Lemon Squeezy license validation failed",
+  };
 }
 
 export async function keygenApiRequest({
@@ -400,14 +551,28 @@ export function createProductionAdapters({ env = process.env, fetchImpl = global
     readiness,
     paddle: {
       verifyWebhookSignature({ rawBody, signatureHeader } = {}) {
-        if (!envSummary.ready) return notConfiguredError("Paddle", envSummary);
-        return verifyPaddleSignature({
-          rawBody,
-          signatureHeader,
-          secret: env.PADDLE_WEBHOOK_SECRET,
-        });
+        void rawBody;
+        void signatureHeader;
+        return { ok: false, statusCode: 410, faultCode: "CLWD-PAY-0001", error: "Paddle payment channel is disabled" };
       },
       mapWebhookEvent: mapPaddleEventToLicenseMutation,
+    },
+    lemonSqueezy: {
+      verifyWebhookSignature({ rawBody, signatureHeader } = {}) {
+        if (!envSummary.ready) return notConfiguredError("Lemon Squeezy", envSummary);
+        return verifyLemonSqueezySignature({
+          rawBody,
+          signatureHeader,
+          secret: env.LEMON_SQUEEZY_WEBHOOK_SECRET,
+        });
+      },
+      mapWebhookEvent: mapLemonSqueezyEventToLicenseMutation,
+      activateLicenseKey({ licenseKey, instanceName } = {}) {
+        return activateLemonSqueezyLicenseKey({ env, fetchImpl, licenseKey, instanceName });
+      },
+      validateLicenseKey({ licenseKey, instanceId } = {}) {
+        return validateLemonSqueezyLicenseKey({ env, fetchImpl, licenseKey, instanceId });
+      },
     },
     keygen: {
       mapWebhookEvent: mapKeygenEventToLicenseMutation,

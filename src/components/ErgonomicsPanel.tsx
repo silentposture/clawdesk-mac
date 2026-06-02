@@ -11,7 +11,7 @@ interface ErgonomicsPanelProps {
 const fallbackChecks: ErgonomicsCheck[] = [
   {
     id: "license-activation-local",
-    taskName: "啟用 Keygen 授權",
+    taskName: "啟用 UniversalServer 授權",
     viewport: "desktop",
     steps: 4,
     keyboardReachable: true,

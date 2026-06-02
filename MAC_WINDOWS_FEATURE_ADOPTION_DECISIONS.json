@@ -1,0 +1,144 @@
+{
+  "generated": "2026-05-16",
+  "source": "auto-classify-windows-vs-mac",
+  "windowsOnlyTotal": 22,
+  "readyToAdd": [],
+  "needsPorting": [],
+  "alreadyInMac": [
+    "qa:release:mac",
+    "release:guard:beta",
+    "gateway:deploy:prepare",
+    "gateway:doctor",
+    "gateway:public:doctor",
+    "i18n:audit",
+    "i18n:audit:strict",
+    "legal:notices",
+    "legal:notices:check",
+    "lemon:onboarding:prepare",
+    "release:configs:check",
+    "sbom",
+    "sbom:check",
+    "smoke:mac-dmg",
+    "verify:lemon:production",
+    "verify:production-gateway:compose",
+    "verify:ui:visual",
+    "website:prepare",
+    "release:metadata:mac",
+    "release:metadata:mac:check",
+    "sign:mac:doctor",
+    "sign:mac:notarize"
+  ],
+  "notRecommended": [
+    {
+      "script": "cert:windows:check",
+      "command": "node scripts/release-guard.mjs --beta-direct --require-signing --require-artifacts",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "beta:env:doctor",
+      "command": "node scripts/beta-direct-env-doctor.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "beta:readiness",
+      "command": "node scripts/beta-readiness-report.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "beta:readiness:check",
+      "command": "node scripts/beta-readiness-report.mjs --fail-on-blocked",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "beta:handoff:prepare",
+      "command": "node scripts/prepare-beta-handoff.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "release:metadata:win",
+      "command": "node scripts/generate-windows-release-metadata.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "release:metadata:win:check",
+      "command": "node scripts/generate-windows-release-metadata.mjs --check",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "smoke:win-app",
+      "command": "node scripts/smoke-win-app.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "smoke:win-installer",
+      "command": "node scripts/smoke-win-installer.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "smoke:store-installer:win",
+      "command": "node scripts/smoke-store-installer-win.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "sign:win-installer",
+      "command": "node scripts/sign-win-installer.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "sign:win:doctor",
+      "command": "node scripts/windows-signing-doctor.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "qa:release:win",
+      "command": "node scripts/qa-loop.mjs --production-smoke --tauri-app-smoke --windows-installer-smoke",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "qa:full:win",
+      "command": "node scripts/qa-win-one-shot.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "qa:full:win:sign",
+      "command": "node scripts/qa-win-one-shot.mjs --require-signature",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "qa:beta-direct:win",
+      "command": "npm run release:guard:beta && npm run smoke:win-app -- --no-build && npm run smoke:win-installer -- --no-build",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "qa:store:win",
+      "command": "node scripts/qa-loop.mjs --production-smoke --store-installer-smoke",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "release:auto:beta:win",
+      "command": "node scripts/auto-beta-release-win.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "tauri:dev:win",
+      "command": "npm run icons && tauri dev",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "tauri:build:win",
+      "command": "node scripts/build-windows.mjs",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "tauri:build:store:win",
+      "command": "node scripts/build-windows.mjs --store",
+      "reason": "contains-platform-keyword"
+    },
+    {
+      "script": "tauri:build:prod:win",
+      "command": "node scripts/build-windows.mjs --production",
+      "reason": "contains-platform-keyword"
+    }
+  ],
+  "summary": "MAC 可安全接入的 Windows 專有功能已完成同步（readyToAdd = []）。其餘 Windows-only 視為專有功能保留在 Windows。"
+}

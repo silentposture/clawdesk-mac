@@ -723,7 +723,13 @@ export default function App(): JSX.Element {
       {workflowPanelOpen ? <WorkflowPanel gatewayBaseUrl={gateway?.baseUrl} onClose={() => setWorkflowPanelOpen(false)} /> : null}
       {mediaPanelOpen ? <MediaPanel gatewayBaseUrl={gateway?.baseUrl} onClose={() => setMediaPanelOpen(false)} /> : null}
       {learningPanelOpen ? <LearningPanel gatewayBaseUrl={gateway?.baseUrl} onClose={() => setLearningPanelOpen(false)} /> : null}
-      {licensePanelOpen ? <LicensePanel gatewayBaseUrl={gateway?.baseUrl} onClose={() => setLicensePanelOpen(false)} /> : null}
+      {licensePanelOpen ? (
+        <LicensePanel
+          gatewayBaseUrl={gateway?.baseUrl}
+          identityEmail={identitySession.email}
+          onClose={() => setLicensePanelOpen(false)}
+        />
+      ) : null}
       {legalPanelOpen ? (
         <LegalPanel
           gatewayBaseUrl={gateway?.baseUrl}

@@ -153,7 +153,7 @@ try {
     await waitForGatewayReadyWithReset();
   });
 
-  await check("Paddle + Keygen license activation, machine binding, and tamper handling", async () => {
+  await check("Lemon Squeezy + Keygen license activation, machine binding, and tamper handling", async () => {
     const fingerprintResponse = await fetch(`${baseUrl}/machine/fingerprint`);
     const fingerprint = await fingerprintResponse.json();
     if (!fingerprintResponse.ok || fingerprint.platform !== "macOS") throw new Error("macOS fingerprint missing");
@@ -164,7 +164,8 @@ try {
     });
     if (!activated.response.ok) throw new Error(`license activation rejected ${activated.response.status}`);
     if (activated.payload.status.licenseProvider !== "keygen") throw new Error("license provider should be Keygen");
-    if (activated.payload.status.paymentProvider !== "paddle") throw new Error("payment provider should be Paddle");
+    if (activated.payload.status.paymentProvider !== "lemon-squeezy") throw new Error("payment provider should be Lemon Squeezy");
+    if (!activated.payload.status.lemonSqueezyInstanceId) throw new Error("Lemon Squeezy instance id missing");
     if (activated.payload.status.machines.length !== 1) throw new Error("machine binding missing");
 
     const refreshed = await postJson("/license/refresh-offline-ticket", {});
@@ -178,9 +179,9 @@ try {
     if (!reported.response.ok || reported.payload.event.faultCode !== "CLWD-LIC-1001") throw new Error("tamper report missing fault code");
   });
 
-  await check("Paddle mock webhook and update entitlement", async () => {
-    const paid = await postJson("/webhooks/paddle/mock", { eventType: "lifetime.purchased" });
-    if (!paid.response.ok) throw new Error("Paddle lifetime webhook rejected");
+  await check("Lemon Squeezy mock webhook and update entitlement", async () => {
+    const paid = await postJson("/webhooks/lemon-squeezy/mock", { eventType: "order_created", plan: "lifetime" });
+    if (!paid.response.ok) throw new Error("Lemon Squeezy lifetime webhook rejected");
     if (paid.payload.status.plan !== "lifetime-local") throw new Error("lifetime plan not mapped");
 
     const renewed = await postJson("/updates/mock-renew-support", {});
@@ -190,6 +191,28 @@ try {
     if (!updateResponse.ok || !update.canInstallLatest) throw new Error("latest update should be installable after renewal");
     if (!update.supportUpdatesUntil || Date.parse(update.supportUpdatesUntil) < Date.parse(minimumUpdateSupportDate)) {
       throw new Error("support expiry did not update");
+    }
+  });
+
+  await check("Lemon Squeezy beta payment verification and license issue", async () => {
+    const issued = await postJson("/webhooks/lemon-squeezy/mock", {
+      eventType: "order_created",
+      plan: "pro-yearly",
+      licenseKey: "CLWD-LEMON-SQZ01-BETA1-00001",
+    });
+    if (!issued.response.ok) throw new Error("Lemon Squeezy beta webhook rejected");
+    if (issued.payload.provider !== "lemon-squeezy") throw new Error("Lemon Squeezy provider not reported");
+    if (issued.payload.status.paymentProvider !== "lemon-squeezy") throw new Error("license payment provider should be Lemon Squeezy");
+    if (issued.payload.status.status !== "active") throw new Error("Lemon Squeezy beta issue should activate license");
+    if (issued.payload.status.plan !== "pro-yearly") throw new Error("Lemon Squeezy beta issue should map to pro-yearly");
+    if (!issued.payload.status.features?.includes("lemon-squeezy-payment")) throw new Error("Lemon Squeezy entitlement missing");
+
+    const failed = await postJson("/webhooks/lemon-squeezy/mock", {
+      eventType: "subscription_payment_failed",
+      licenseKey: "CLWD-LEMON-SQZ01-BETA1-00001",
+    });
+    if (!failed.response.ok || failed.payload.status.status !== "past-due") {
+      throw new Error("Lemon Squeezy failed payment should mark license past-due");
     }
   });
 
@@ -311,14 +334,11 @@ try {
     if (statusPayload.status.features?.length < 5) throw new Error("developer feature set missing");
     const priceById = Object.fromEntries((statusPayload.pricingPlans ?? []).map((plan) => [plan.id, plan.priceUsd]));
     for (const [planId, price] of Object.entries({
-      "free-trial": 0,
-      monthly: 9,
-      yearly: 79,
-      lifetime: 99,
-      "early-bird": 69,
-      "update-maintenance": 29,
+      trial: 0,
+      "pro-yearly": 79,
+      "lifetime-local": 99,
     })) {
-      if (priceById[planId] !== price) throw new Error(`v0.2 pricing mismatch for ${planId}`);
+      if (priceById[planId] !== price) throw new Error(`launch pricing mismatch for ${planId}`);
     }
   });
 
@@ -424,7 +444,40 @@ try {
     const providersPayload = await providersResponse.json();
     if (!providersResponse.ok) throw new Error("llm providers endpoint failed");
     const providerIds = new Set(providersPayload.providers.map((item) => item.id));
-    for (const providerId of ["anthropic", "groq", "openrouter", "azure-openai", "local-model"]) {
+    const importedOpenClawProviders = [
+      "anthropic",
+      "anthropic-vertex",
+      "google",
+      "google-gemini-cli",
+      "groq",
+      "openrouter",
+      "perplexity",
+      "azure-openai",
+      "bedrock",
+      "bedrock-mantle",
+      "arcee",
+      "azure-speech",
+      "chutes",
+      "comfy",
+      "deepgram",
+      "elevenlabs",
+      "fireworks",
+      "gradium",
+      "index",
+      "inworld",
+      "litellm",
+      "microsoft-foundry",
+      "senseaudio",
+      "synthetic",
+      "tencent",
+      "vydra",
+      "ollama",
+      "lmstudio",
+      "vllm",
+      "sglang",
+      "local-model",
+    ];
+    for (const providerId of importedOpenClawProviders) {
       if (!providerIds.has(providerId)) throw new Error(`missing provider ${providerId}`);
     }
 
@@ -448,6 +501,17 @@ try {
 
     const unsupported = await postJson("/auth/provider", { provider: "not-exist", model: "x" });
     if (unsupported.response.ok) throw new Error("unknown provider should be rejected");
+  });
+
+  await check("OpenAI Codex OAuth provider route", async () => {
+    const { response, payload } = await postJson("/auth/openai-codex/oauth-login", {
+      accountEmail: "codex-user@example.test",
+      model: "gpt-5.5",
+    });
+    if (!response.ok) throw new Error(`status ${response.status}`);
+    if (payload.activeProvider !== "openai-codex") throw new Error("OpenAI Codex should become active provider");
+    if (payload.model !== "gpt-5.5") throw new Error("OpenAI Codex model should be persisted");
+    if (!payload.detail.includes("canonical openai/gpt-* route")) throw new Error("OpenAI Codex route should document canonical OpenAI model route");
   });
 
   await check("OpenAI API provider model setting", async () => {
@@ -557,8 +621,14 @@ try {
     if (!office.protocols?.length || !office.protocols.some((protocol) => protocol.id === "microsoft-graph")) {
       throw new Error("Microsoft Office connector missing Microsoft Graph protocol metadata");
     }
+    if (!office.scopes?.some((scope) => scope.id === "Files.ReadWrite")) {
+      throw new Error("Microsoft Office connector missing Files.ReadWrite scope");
+    }
     if (!google.protocols?.length || !google.protocols.some((protocol) => protocol.id === "google-workspace-apis")) {
       throw new Error("Google Workspace connector missing Google Workspace API metadata");
+    }
+    if (!google.scopes?.some((scope) => scope.id.includes("gmail.compose"))) {
+      throw new Error("Google Workspace connector missing Gmail compose scope");
     }
     if (!browser) throw new Error("missing browser and vision connector");
     if (!developer) throw new Error("missing developer tools connector");
@@ -581,9 +651,10 @@ try {
       }
     }
 
-    const connected = await postJson("/mcp/connect", { connectorId: "microsoft-office" });
+    const connected = await postJson("/mcp/connect", { connectorId: "microsoft-office", scopes: ["Files.Read", "Files.ReadWrite", "Mail.ReadWrite"] });
     if (!connected.response.ok) throw new Error("Microsoft MCP connector did not connect");
     if (connected.payload.status !== "connected") throw new Error("connector status was not persisted");
+    if (!connected.payload.grant?.scopes?.includes("Files.ReadWrite")) throw new Error("Microsoft MCP grant scopes missing");
 
     const preview = await postJson("/mcp/preview", {
       connectorId: "microsoft-office",
@@ -592,6 +663,7 @@ try {
     });
     if (!preview.response.ok) throw new Error("MCP preview rejected");
     if (!preview.payload.requiresApproval) throw new Error("Word redline should require approval");
+    if (preview.payload.grant?.status !== "active") throw new Error("MCP preview should include active grant");
 
     const terminalPreview = await postJson("/mcp/preview", {
       connectorId: "developer-tools",
@@ -602,6 +674,34 @@ try {
     if (!terminalPreview.payload.requiresApproval || terminalPreview.payload.risk !== "high") {
       throw new Error("Terminal command plans must require high-risk approval");
     }
+
+    const auditResponse = await fetch(`${baseUrl}/mcp/audit`);
+    const audit = await auditResponse.json();
+    if (!auditResponse.ok || !audit.events.some((event) => event.action === "preview")) throw new Error("MCP audit preview event missing");
+
+    const revoked = await postJson("/mcp/revoke", { connectorId: "microsoft-office" });
+    if (!revoked.response.ok || revoked.payload.connector.status !== "available") throw new Error("MCP revoke did not reset connector");
+
+    const microsoftOAuthResponse = await fetch(`${baseUrl}/mcp/microsoft/oauth/start?scopes=${encodeURIComponent("openid profile offline_access User.Read Files.Read")}`);
+    const microsoftOAuth = await microsoftOAuthResponse.json();
+    if (!microsoftOAuthResponse.ok) throw new Error("Microsoft OAuth start failed");
+    if (!microsoftOAuth.authorizationUrl?.includes("login.microsoftonline.com")) throw new Error("Microsoft OAuth authorize URL missing");
+    if (!microsoftOAuth.scopes.includes("offline_access")) throw new Error("Microsoft OAuth offline_access scope missing");
+    if (microsoftOAuth.configured !== false || microsoftOAuth.faultCode !== "CLWD-MCP-MS-9001") {
+      throw new Error("Microsoft OAuth should fail closed without production credentials");
+    }
+  });
+
+  await check("release manifest and update eligibility contract", async () => {
+    const manifestResponse = await fetch(`${baseUrl}/updates/manifest`);
+    const manifest = await manifestResponse.json();
+    if (!manifestResponse.ok) throw new Error("release manifest failed");
+    if (!Array.isArray(manifest.releases) || manifest.releases.length < 2) throw new Error("release manifest missing releases");
+    if (!manifest.releases[0].downloads?.macosUniversal?.endsWith(".dmg")) throw new Error("macOS download link missing");
+    if (manifest.policy?.supportUpdatesUntilField !== "license.supportUpdatesUntil") throw new Error("support update policy missing");
+    const checkResponse = await fetch(`${baseUrl}/updates/check`);
+    const checkPayload = await checkResponse.json();
+    if (!checkResponse.ok || !checkPayload.eligibleLatestVersion) throw new Error("update eligibility missing");
   });
 
   await check("macOS desktop accessibility preview and agent task board", async () => {

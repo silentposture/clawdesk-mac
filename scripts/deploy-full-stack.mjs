@@ -1,11 +1,77 @@
 import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
-function hasDocker() {
-  const result = spawnSync("bash", ["-lc", "command -v docker >/dev/null 2>&1 && echo ok"], {
+function hasDockerCli() {
+  const result = spawnSync("docker", ["--version"], {
     encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    shell: false,
   });
   return result.status === 0;
+}
+
+function hasDockerDaemon() {
+  const result = spawnSync("docker", ["info", "--format", "{{.ServerVersion}}"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    shell: false,
+  });
+  return {
+    ok: result.status === 0,
+    error: (result.stderr || result.stdout || "").trim() || null,
+  };
+}
+
+function firstNonEmptyLine(text) {
+  return String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean) ?? "";
+}
+
+function dockerDaemonHint(errorText) {
+  const message = String(errorText || "");
+  if (process.platform === "win32") {
+    if (message.includes("dockerDesktopLinuxEngine") || message.includes("The system cannot find the file specified")) {
+      return "請先啟動 Docker Desktop，並確認 Linux containers 引擎已啟用。";
+    }
+    return "請確認 Docker Desktop 已啟動，並可成功執行 `docker info`。";
+  }
+
+  return "請確認 Docker daemon 已啟動，並可成功執行 `docker info`。";
+}
+
+function listPortPids(port) {
+  const result = process.platform === "win32"
+    ? spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-Command",
+          `Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique`,
+        ],
+        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], shell: false },
+      )
+    : spawnSync("bash", ["-lc", `lsof -ti tcp:${port} || true`], {
+        encoding: "utf8",
+      });
+
+  return (result.stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function terminatePid(pid) {
+  if (process.platform === "win32") {
+    spawnSync("powershell.exe", ["-NoProfile", "-Command", `Stop-Process -Id ${Number(pid)} -Force -ErrorAction SilentlyContinue`], {
+      stdio: "ignore",
+      shell: false,
+    });
+    return;
+  }
+
+  spawnSync("kill", ["-TERM", pid], { stdio: "ignore" });
 }
 
 function runCommand(label, command, args) {
@@ -80,16 +146,11 @@ async function checkEndpoints({ throwOnFailure = true } = {}) {
 
 async function killLocalPorts(ports = []) {
   for (const port of ports) {
-    const pids = spawnSync("bash", ["-lc", `lsof -ti tcp:${port} || true`], {
-      encoding: "utf8",
-    }).stdout
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const pids = listPortPids(port);
 
     for (const pid of pids) {
       console.log(`關閉端口服務: ${port} -> pid ${pid}`);
-      spawnSync("kill", ["-TERM", pid], { stdio: "ignore" });
+      terminatePid(pid);
     }
   }
   if (ports.length > 0) {
@@ -98,18 +159,22 @@ async function killLocalPorts(ports = []) {
 }
 
 async function isPortInUse(port) {
-  const pids = spawnSync("bash", ["-lc", `lsof -ti tcp:${port} || true`], {
-    encoding: "utf8",
-  }).stdout
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-  return pids.length > 0;
+  return listPortPids(port).length > 0;
 }
 
 async function run() {
   const mode = process.argv[2] ?? "up";
-  const hasDockerRuntime = hasDocker();
+  const dockerCliAvailable = hasDockerCli();
+  const daemonStatus = dockerCliAvailable ? hasDockerDaemon() : { ok: false, error: null };
+  const hasDockerRuntime = dockerCliAvailable && daemonStatus.ok;
+  if (dockerCliAvailable && !hasDockerRuntime) {
+    console.log("偵測到 Docker CLI，但 daemon 未啟動或不可連線，改用本機 fallback 流程。");
+    const errorLine = firstNonEmptyLine(daemonStatus.error);
+    if (errorLine) {
+      console.log(`Docker daemon 檢查訊息：${errorLine}`);
+    }
+    console.log(`建議處理：${dockerDaemonHint(daemonStatus.error)}`);
+  }
   const stackCommand = [
     "docker",
     "compose",

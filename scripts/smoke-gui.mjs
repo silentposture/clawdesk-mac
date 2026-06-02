@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -74,10 +74,21 @@ async function postJson(pathname, body = {}) {
 }
 
 function spawnProcess(command, args, env = {}) {
-  return spawn(command, args, {
+  const invocation = process.platform === "win32"
+    ? command.endsWith(".exe") || command === process.execPath
+      ? { command, args }
+      : command === "node"
+        ? { command: "node.exe", args }
+        : command === "npm" || command === "npx"
+          ? { command: "cmd.exe", args: ["/d", "/s", "/c", `${command}.cmd`, ...args] }
+          : { command, args }
+    : { command, args };
+
+  return spawn(invocation.command, invocation.args, {
     cwd: process.cwd(),
     env: { ...process.env, ...env },
     stdio: ["ignore", "pipe", "pipe"],
+    shell: false,
   });
 }
 
@@ -133,7 +144,81 @@ async function stop(child, label) {
       new Promise((resolve) => setTimeout(resolve, 800)),
     ]);
   }
+  if (child.exitCode === null && process.platform === "win32" && child.pid) {
+    spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+      stdio: "ignore",
+      windowsHide: true,
+      shell: false,
+    });
+    await Promise.race([
+      once(child, "exit"),
+      new Promise((resolve) => setTimeout(resolve, 1200)),
+    ]);
+  }
   console.log(`${label} 停止。`);
+}
+
+function listListeningPids(port) {
+  if (!Number.isFinite(port) || port <= 0) return [];
+  const result = process.platform === "win32"
+    ? spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-Command",
+          `Get-NetTCPConnection -LocalPort ${Number(port)} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique`,
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          shell: false,
+          windowsHide: true,
+        },
+      )
+    : spawnSync("bash", ["-lc", `lsof -ti tcp:${Number(port)} || true`], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        shell: false,
+      });
+
+  return (result.stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isFinite(value) && value > 0);
+}
+
+function terminatePidTree(pid) {
+  if (!Number.isFinite(pid) || pid <= 0) return;
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+      stdio: "ignore",
+      shell: false,
+      windowsHide: true,
+    });
+    return;
+  }
+
+  spawnSync("kill", ["-TERM", String(pid)], { stdio: "ignore", shell: false });
+  spawnSync("kill", ["-KILL", String(pid)], { stdio: "ignore", shell: false });
+}
+
+async function ensurePortStopped(port, label, timeoutMs = 2600) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const pids = listListeningPids(port);
+    if (pids.length === 0) return true;
+    for (const pid of pids) terminatePidTree(pid);
+    await new Promise((resolve) => setTimeout(resolve, 160));
+  }
+
+  const remaining = listListeningPids(port);
+  if (remaining.length > 0) {
+    console.warn(`${label} 清理後仍佔用埠 ${port}: ${remaining.join(", ")}`);
+    return false;
+  }
+  return true;
 }
 
 function registerIssue(outcome, details) {
@@ -1652,12 +1737,17 @@ try {
   await browser?.close();
   if (shouldStopAppServer) {
     await stop(appServerProcess, appServer === "preview" ? "Vite preview" : "Vite dev");
+    await ensurePortStopped(appPort, "App Server");
   }
   if (shouldStopGateway) {
     await stop(gateway, "Mock Gateway");
+    await ensurePortStopped(gatewayPort, "Mock Gateway");
   }
 
   if (outcome.failures > 0) {
     process.exitCode = 1;
+  }
+  if (process.platform === "win32") {
+    process.exit(process.exitCode ?? 0);
   }
 }

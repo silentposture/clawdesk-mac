@@ -19,12 +19,21 @@ describe("deployment console", () => {
         productionModules: ["Keygen license adapter"],
         environmentVariables: ["KEYGEN_API_TOKEN"],
       },
-      license: { status: { licenseProvider: "keygen", status: "active", lastValidationCode: "KEYGEN_VALID" } },
+      license: {
+        status: {
+          licenseProvider: "keygen",
+          entitlementAuthority: "universal-server",
+          canonicalPlanKey: "clawdesk.subscription.yearly.2dev",
+          status: "active",
+          lastValidationCode: "KEYGEN_VALID",
+        },
+      },
     });
 
     expect(snapshot.gatewayReady).toBe(true);
     expect(snapshot.backendReady).toBe(true);
-    expect(snapshot.keygenReadonly).toBe("keygen:KEYGEN_VALID");
+    expect(snapshot.legacyLicenseReadonly).toBe("keygen:KEYGEN_VALID");
+    expect(snapshot.canonicalLicenseReadonly).toBe("universal-server:clawdesk.subscription.yearly.2dev:KEYGEN_VALID");
     expect(JSON.stringify(snapshot)).not.toContain("secret");
   });
 

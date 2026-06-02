@@ -15,12 +15,9 @@ let currentMachineFingerprintHash = "";
 let currentLicenseStatus = createFreeLicenseStatus();
 
 const pricingPlans = [
-  { id: "free-trial", name: "Free Trial", priceUsd: 0, cadence: "trial", description: "本機安全沙盒、手動授權與基本桌面工作流試用。" },
-  { id: "monthly", name: "Monthly", priceUsd: 9, cadence: "monthly", description: "桌面 AI 工作平台月繳方案；不販售模型算力。" },
-  { id: "yearly", name: "Yearly", priceUsd: 79, cadence: "yearly", description: "桌面 AI 工作平台年繳方案，含支援更新資格。" },
-  { id: "lifetime", name: "Lifetime", priceUsd: 99, cadence: "one-time", description: "永久本機功能，含 12 個月支援更新。" },
-  { id: "early-bird", name: "Early Bird", priceUsd: 69, cadence: "one-time", description: "早鳥一次買斷名額，適合 side-project 商業 Beta 內測。" },
-  { id: "update-maintenance", name: "Update Maintenance", priceUsd: 29, cadence: "maintenance", description: "買斷版支援更新續費，延長可安裝新版本資格一年。" },
+  { id: "trial", name: "Free Trial", priceUsd: 0, cadence: "free", description: "本機安全沙盒、手動授權與基本桌面工作流試用。" },
+  { id: "pro-yearly", name: "Pro Yearly", priceUsd: 79, cadence: "yearly", description: "桌面 AI 工作平台年繳方案，含支援更新資格。" },
+  { id: "lifetime-local", name: "Lifetime", priceUsd: 99, cadence: "one-time", description: "永久本機功能，含 12 個月支援更新。" },
 ];
 
 const gatewayContract = {
@@ -35,6 +32,24 @@ const gatewayContract = {
     { method: "GET", path: "/events" },
     { method: "POST", path: "/chat" },
     { method: "POST", path: "/permission-result" },
+    { method: "POST", path: "/api/auth/register" },
+    { method: "GET", path: "/api/auth/verify-email" },
+    { method: "POST", path: "/api/auth/verify-email" },
+    { method: "POST", path: "/api/auth/login" },
+    { method: "GET", path: "/api/auth/me" },
+    { method: "POST", path: "/api/auth/logout" },
+    { method: "POST", path: "/api/auth/password/forgot" },
+    { method: "POST", path: "/api/auth/password/reset" },
+    { method: "GET", path: "/api/account/entitlements" },
+    { method: "GET", path: "/api/license/public-keys" },
+    { method: "POST", path: "/api/license/activate" },
+    { method: "POST", path: "/api/license/validate" },
+    { method: "POST", path: "/api/license/refresh-certificate" },
+    { method: "POST", path: "/api/license/deactivate" },
+    { method: "GET", path: "/api/license/me" },
+    { method: "POST", path: "/api/webhooks/lemonsqueezy" },
+    { method: "POST", path: "/api/payment/lemonsqueezy/webhook" },
+    { method: "POST", path: "/api/payment/newebpay/notify" },
     { method: "GET", path: "/identity/session" },
     { method: "POST", path: "/identity/register" },
     { method: "POST", path: "/identity/confirm" },
@@ -50,6 +65,15 @@ const gatewayContract = {
     { method: "POST", path: "/license/refresh-offline-ticket" },
     { method: "POST", path: "/license/report-tamper" },
     { method: "GET", path: "/updates/check" },
+    { method: "GET", path: "/updates/manifest" },
+    { method: "GET", path: "/updates/history" },
+    { method: "GET", path: "/mcp/connectors" },
+    { method: "POST", path: "/mcp/connect" },
+    { method: "POST", path: "/mcp/revoke" },
+    { method: "GET", path: "/mcp/audit" },
+    { method: "GET", path: "/mcp/microsoft/oauth/start" },
+    { method: "POST", path: "/mcp/microsoft/oauth/callback" },
+    { method: "POST", path: "/mcp/microsoft/oauth/revoke" },
     { method: "GET", path: "/legal/documents" },
     { method: "GET", path: "/legal/notices" },
     { method: "POST", path: "/diagnostics/create-report" },
@@ -74,15 +98,22 @@ function json(res, code, body) {
 
 function createFreeLicenseStatus() {
   return {
-    paymentProvider: "paddle",
+    paymentProvider: "lemon-squeezy",
     licenseProvider: "keygen",
+    commerceProvider: "lemon-squeezy",
+    entitlementAuthority: "universal-server",
+    productKey: "clawdesk",
+    canonicalPlanKey: "clawdesk.free",
     plan: "hobby",
     status: "free",
     seats: 1,
     supportUpdatesUntil: "2026-05-12",
+    updatesUntilUtc: "2026-05-12T00:00:00.000Z",
     eligibleLatestVersion: "1.0.0",
     features: ["safe-mode", "local-chat", "manual-permissions"],
     deviceLimit: 1,
+    activeDeviceCount: 0,
+    graceUntilUtc: null,
     machines: [],
     lastValidationCode: "PROD_SIM_HOBBY",
   };
@@ -119,16 +150,26 @@ function frontendLicenseFromBackend(backendPayload, machine) {
   const license = backendPayload?.license ?? backendPayload ?? {};
   const active = String(license.status ?? "").toLowerCase() === "active";
   return {
-    paymentProvider: "paddle",
+    paymentProvider: "lemon-squeezy",
     licenseProvider: "keygen",
+    commerceProvider: "lemon-squeezy",
+    entitlementAuthority: "universal-server",
+    productKey: "clawdesk",
+    canonicalPlanKey: license.canonicalPlanKey ?? "clawdesk.free",
     plan: license.plan ?? "hobby",
     status: active ? "active" : license.status ?? "free",
     seats: license.plan === "team" ? 10 : 1,
     supportUpdatesUntil: license.supportUpdatesUntil ?? "2026-05-12",
+    updatesUntilUtc: license.updatesUntilUtc ?? (license.supportUpdatesUntil ? `${license.supportUpdatesUntil}T00:00:00.000Z` : null),
     eligibleLatestVersion: active ? "1.4.0" : "1.0.0",
     offlineGraceUntil: active ? "2026-06-11" : undefined,
+    graceUntilUtc: license.graceUntilUtc ?? (active ? "2026-06-11T00:00:00.000Z" : null),
     features: active ? ["pro-agent", "workflow-builder", "mcp-connectors", "diagnostics"] : ["safe-mode", "local-chat"],
     deviceLimit: license.deviceLimit ?? 1,
+    activeDeviceCount: Array.isArray(machine) ? machine.length : machine ? 1 : 0,
+    lemonSqueezyInstanceId: license.lemonSqueezyInstanceId ?? backendPayload?.instance?.id,
+    lemonSqueezyLicenseKeyId: license.lemonSqueezyLicenseKeyId,
+    onlineValidationStatus: active ? "valid" : "skipped",
     machines: machine
       ? [
           {
@@ -141,7 +182,47 @@ function frontendLicenseFromBackend(backendPayload, machine) {
           },
         ]
       : [],
-    lastValidationCode: active ? "KEYGEN_VALID" : "PROD_SIM_HOBBY",
+    lastValidationCode: active ? "LEMON_SQUEEZY_VALID" : "PROD_SIM_HOBBY",
+  };
+}
+
+function frontendLicenseFromNaviaPayload(licensePayload, machineFingerprintHash = currentMachineFingerprintHash) {
+  const payload = licensePayload ?? {};
+  const maxDevices = Number(payload.maxDevices ?? 1);
+  const planKey = String(payload.planKey ?? "clawdesk.free");
+  const status = String(payload.status ?? "active");
+  const machine = machineFingerprintHash
+    ? [
+        {
+          machineId: payload.instanceId ?? "prod-sim-machine",
+          fingerprintHash: machineFingerprintHash,
+          deviceName: "Mac Apple Silicon",
+          platform: "macOS arm64",
+          activatedAt: payload.issuedAtUtc ?? nowIso(),
+          lastSeenAt: nowIso(),
+        },
+      ]
+    : [];
+  return {
+    paymentProvider: "naviaworks",
+    licenseProvider: "universal-server",
+    commerceProvider: "naviaworks",
+    entitlementAuthority: "universal-server",
+    productKey: "clawdesk",
+    canonicalPlanKey: planKey,
+    plan: planKey,
+    status,
+    seats: maxDevices,
+    supportUpdatesUntil: String(payload.updatesUntilUtc ?? "2026-05-12").slice(0, 10),
+    updatesUntilUtc: payload.updatesUntilUtc ?? null,
+    eligibleLatestVersion: status === "active" ? "1.4.0" : "1.0.0",
+    offlineGraceUntil: payload.graceUntilUtc ?? undefined,
+    graceUntilUtc: payload.graceUntilUtc ?? null,
+    features: Array.isArray(payload.features) ? payload.features : [],
+    deviceLimit: maxDevices,
+    activeDeviceCount: machine.length,
+    machines: machine,
+    lastValidationCode: status === "active" ? "NAVIA_VALID" : "NAVIA_INACTIVE",
   };
 }
 
@@ -178,6 +259,11 @@ async function backendRequest(path, options = {}) {
   const text = await response.text();
   const payload = text ? JSON.parse(text) : {};
   return { ok: response.ok, status: response.status, payload };
+}
+
+function backendStatusCode(result) {
+  if (Number.isInteger(result?.status) && result.status > 0) return result.status;
+  return result?.ok ? 200 : 502;
 }
 
 function websocketAccept(key) {
@@ -293,6 +379,144 @@ const server = http.createServer(async (req, res) => {
       const body = await readJson(req);
       broadcast(body);
       json(res, 200, { accepted: true, target: "active-production-gateway" });
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/register") {
+      const body = await readJson(req);
+      const backend = await backendRequest("/api/auth/register", { method: "POST", body });
+      if (backend.ok && body?.email && backend.payload?.debugVerificationToken) {
+        verificationCodes.set(String(body.email).trim().toLowerCase(), backend.payload.debugVerificationToken);
+      }
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/auth/verify-email") {
+      const backend = await backendRequest(`/api/auth/verify-email${parsed.search}`);
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/verify-email") {
+      const backend = await backendRequest("/api/auth/verify-email", { method: "POST", body: await readJson(req) });
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/login") {
+      const backend = await backendRequest("/api/auth/login", { method: "POST", body: await readJson(req) });
+      if (backend.ok) currentIdentityToken = backend.payload?.session?.token ?? currentIdentityToken;
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/auth/me") {
+      const backend = await backendRequest(`/api/auth/me${parsed.search}`, { token: currentIdentityToken });
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/logout") {
+      const backend = await backendRequest("/api/auth/logout", { method: "POST", token: currentIdentityToken, body: {} });
+      currentIdentityToken = "";
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/password/forgot") {
+      const backend = await backendRequest("/api/auth/password/forgot", { method: "POST", body: await readJson(req) });
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/password/reset") {
+      const backend = await backendRequest("/api/auth/password/reset", { method: "POST", body: await readJson(req) });
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/account/entitlements") {
+      const backend = await backendRequest(`/api/account/entitlements${parsed.search}`, { token: currentIdentityToken });
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/license/public-keys") {
+      const backend = await backendRequest("/api/license/public-keys");
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/license/activate") {
+      const body = await readJson(req);
+      currentLicenseKey = String(body?.orderNo ?? body?.licenseKey ?? currentLicenseKey);
+      currentMachineFingerprintHash = String(body?.hwid ?? currentMachineFingerprintHash);
+      const backend = await backendRequest("/api/license/activate", { method: "POST", body });
+      if (backend.ok) {
+        currentLicenseStatus = frontendLicenseFromNaviaPayload(backend.payload?.license?.payload, currentMachineFingerprintHash);
+      }
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/license/validate") {
+      const backend = await backendRequest("/api/license/validate", { method: "POST", body: await readJson(req) });
+      if (backend.ok && backend.payload?.data) {
+        currentLicenseStatus = frontendLicenseFromNaviaPayload(
+          {
+            planKey: backend.payload.data.planKey,
+            status: backend.payload.data.active ? "active" : "safe-mode",
+            updatesUntilUtc: backend.payload.data.updatesUntilUtc,
+            graceUntilUtc: backend.payload.data.graceUntilUtc,
+            maxDevices: backend.payload.data.maxDevices,
+            features: backend.payload.data.features,
+            instanceId: backend.payload.data.instanceId,
+          },
+          currentMachineFingerprintHash,
+        );
+      }
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/license/refresh-certificate") {
+      const backend = await backendRequest("/api/license/refresh-certificate", { method: "POST", body: await readJson(req) });
+      if (backend.ok) {
+        currentLicenseStatus = frontendLicenseFromNaviaPayload(backend.payload?.license?.payload, currentMachineFingerprintHash);
+      }
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/license/deactivate") {
+      const backend = await backendRequest("/api/license/deactivate", { method: "POST", body: await readJson(req) });
+      if (backend.ok) currentLicenseStatus = createFreeLicenseStatus();
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/license/me") {
+      const backend = await backendRequest(`/api/license/me${parsed.search}`, { token: currentIdentityToken });
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/webhooks/lemonsqueezy") {
+      const backend = await backendRequest("/api/webhooks/lemonsqueezy", { method: "POST", body: await readJson(req) });
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/payment/lemonsqueezy/webhook") {
+      const backend = await backendRequest("/api/payment/lemonsqueezy/webhook", { method: "POST", body: await readJson(req) });
+      json(res, backendStatusCode(backend), backend.payload);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/payment/newebpay/notify") {
+      const backend = await backendRequest("/api/payment/newebpay/notify", { method: "POST", body: await readJson(req) });
+      json(res, backendStatusCode(backend), backend.payload);
       return;
     }
 
@@ -421,11 +645,29 @@ const server = http.createServer(async (req, res) => {
 
     for (const [gatewayPath, backendPath] of [
       ["/updates/check", "/updates/check"],
+      ["/updates/manifest", "/updates/manifest"],
+      ["/updates/history", "/updates/history"],
+      ["/mcp/connectors", "/mcp/connectors"],
+      ["/mcp/audit", "/mcp/audit"],
+      ["/mcp/microsoft/oauth/start", `/mcp/microsoft/oauth/start${parsed.search}`],
       ["/legal/documents", "/legal/documents"],
       ["/legal/notices", "/legal/notices"],
     ]) {
       if (req.method === "GET" && pathname === gatewayPath) {
         const backend = await backendRequest(backendPath);
+        json(res, backend.status, backend.payload);
+        return;
+      }
+    }
+
+    for (const [gatewayPath, backendPath] of [
+      ["/mcp/connect", "/mcp/connect"],
+      ["/mcp/revoke", "/mcp/revoke"],
+      ["/mcp/microsoft/oauth/callback", "/mcp/microsoft/oauth/callback"],
+      ["/mcp/microsoft/oauth/revoke", "/mcp/microsoft/oauth/revoke"],
+    ]) {
+      if (req.method === "POST" && pathname === gatewayPath) {
+        const backend = await backendRequest(backendPath, { method: "POST", body: await readJson(req) });
         json(res, backend.status, backend.payload);
         return;
       }

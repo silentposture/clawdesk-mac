@@ -101,6 +101,14 @@ struct LegalConsentRecord {
     documents: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MachineIdentityRecord {
+    hwid: String,
+    instance_id: String,
+    source: String,
+}
+
 #[derive(Default)]
 struct GatewayState {
     child: Option<Child>,
@@ -464,12 +472,24 @@ fn legal_consent_path_from_config_dir(config_dir: PathBuf) -> PathBuf {
     config_dir.join("legal-consent.json")
 }
 
+fn license_cache_path_from_config_dir(config_dir: PathBuf) -> PathBuf {
+    config_dir.join("license-cache.json")
+}
+
 fn legal_consent_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let config_dir = app
         .path()
         .app_config_dir()
         .map_err(|error| format!("Failed to resolve app config dir: {error}"))?;
     Ok(legal_consent_path_from_config_dir(config_dir))
+}
+
+fn license_cache_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|error| format!("Failed to resolve app config dir: {error}"))?;
+    Ok(license_cache_path_from_config_dir(config_dir))
 }
 
 fn read_legal_consent_from_path(path: PathBuf) -> Result<Option<LegalConsentRecord>, String> {
@@ -501,6 +521,61 @@ fn write_legal_export_to_path(path: PathBuf, contents: &str) -> Result<(), Strin
             .map_err(|error| format!("Failed to create export directory: {error}"))?;
     }
     fs::write(path, contents).map_err(|error| format!("Failed to write legal export: {error}"))
+}
+
+fn read_license_cache_from_path(path: PathBuf) -> Result<Option<String>, String> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    fs::read_to_string(&path)
+        .map(Some)
+        .map_err(|error| format!("Failed to read license cache: {error}"))
+}
+
+fn write_license_cache_to_path(path: PathBuf, record_json: &str) -> Result<(), String> {
+    serde_json::from_str::<serde_json::Value>(record_json)
+        .map_err(|error| format!("License cache must be valid JSON: {error}"))?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("Failed to create app config dir: {error}"))?;
+    }
+    fs::write(path, record_json).map_err(|error| format!("Failed to write license cache: {error}"))
+}
+
+fn delete_license_cache_from_path(path: PathBuf) -> Result<bool, String> {
+    if !path.exists() {
+        return Ok(false);
+    }
+    fs::remove_file(path)
+        .map(|_| true)
+        .map_err(|error| format!("Failed to delete license cache: {error}"))
+}
+
+fn fnv1a64_hex(input: &str) -> String {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in input.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{hash:016x}")
+}
+
+fn read_machine_identity() -> MachineIdentityRecord {
+    let host_name = std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("COMPUTERNAME"))
+        .unwrap_or_else(|_| "unknown-host".to_string());
+    let user_name = std::env::var("USER")
+        .or_else(|_| std::env::var("USERNAME"))
+        .unwrap_or_else(|_| "unknown-user".to_string());
+    let platform = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
+    let hwid_seed = format!("clawdesk-mac|{platform}|{host_name}|{user_name}");
+    let instance_seed = format!("clawdesk-mac-instance|{platform}|{host_name}|{user_name}");
+
+    MachineIdentityRecord {
+        hwid: format!("mfp_{}", fnv1a64_hex(&hwid_seed)),
+        instance_id: format!("clawdesk-{}", fnv1a64_hex(&instance_seed)),
+        source: "portable-host".to_string(),
+    }
 }
 
 fn sidecar_script_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -689,6 +764,26 @@ fn save_legal_export(default_file_name: String, contents: String) -> Result<Opti
 }
 
 #[tauri::command]
+fn read_license_cache(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    read_license_cache_from_path(license_cache_path(&app)?)
+}
+
+#[tauri::command]
+fn write_license_cache(app: tauri::AppHandle, record_json: String) -> Result<(), String> {
+    write_license_cache_to_path(license_cache_path(&app)?, &record_json)
+}
+
+#[tauri::command]
+fn delete_license_cache(app: tauri::AppHandle) -> Result<bool, String> {
+    delete_license_cache_from_path(license_cache_path(&app)?)
+}
+
+#[tauri::command]
+fn get_machine_identity() -> Result<MachineIdentityRecord, String> {
+    Ok(read_machine_identity())
+}
+
+#[tauri::command]
 fn local_stack_status(
     state: tauri::State<'_, SharedLocalStackState>,
 ) -> Result<LocalStackStatus, String> {
@@ -844,6 +939,10 @@ pub fn run() {
             read_legal_consent,
             write_legal_consent,
             save_legal_export,
+            read_license_cache,
+            write_license_cache,
+            delete_license_cache,
+            get_machine_identity,
             local_stack_status,
             start_local_stack,
             stop_local_stack,

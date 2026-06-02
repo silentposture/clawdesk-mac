@@ -15,6 +15,11 @@ export interface LegalExportNotice {
 export interface LegalExportPackage {
   exportedAt: string;
   product: "ClawDesk";
+  developer: {
+    displayName: "Alisonsoftware";
+    type: "individual-developer";
+    contact: "see-app-legal-center";
+  };
   scope: "legal-summary";
   legalConsent?: Pick<LegalConsentRecord, "version" | "acceptedAt" | "documentHash" | "documents">;
   documents: LegalExportDocument[];
@@ -35,6 +40,11 @@ export function buildLegalExportPackage(input: {
   return {
     exportedAt: input.now ?? new Date().toISOString(),
     product: "ClawDesk",
+    developer: {
+      displayName: "Alisonsoftware",
+      type: "individual-developer",
+      contact: "see-app-legal-center",
+    },
     scope: "legal-summary",
     legalConsent: input.legalConsent
       ? {

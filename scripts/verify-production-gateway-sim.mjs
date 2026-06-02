@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { createVerifyReportTracker } from "./lib/verify-report.mjs";
 
 const backendPort = Number(process.env.CLAWDESK_PROD_SIM_BACKEND_PORT ?? 19120);
 const gatewayPort = Number(process.env.CLAWDESK_PROD_SIM_GATEWAY_PORT ?? 19130);
@@ -11,25 +12,15 @@ const gatewayUrl = `http://127.0.0.1:${gatewayPort}`;
 const gatewayWsUrl = `ws://127.0.0.1:${gatewayPort}/events`;
 const reportDir = path.join(process.cwd(), "artifacts", "production-gateway-sim");
 const reportFile = path.join(reportDir, `${new Date().toISOString().replace(/[:.]/g, "_")}-report.json`);
-const checks = [];
+const tracker = createVerifyReportTracker();
+const checks = tracker.checks;
 
-function pass(name, details) {
-  checks.push({ name, ok: true, details });
-  console.log(`PASS ${name}`);
-}
-
-function fail(name, error) {
-  const message = error instanceof Error ? error.message : String(error);
-  checks.push({ name, ok: false, error: message });
-  console.log(`FAIL ${name}: ${message}`);
-}
-
-async function check(name, fn) {
+async function check(name, contractSurface, fn) {
   try {
-    const details = await fn();
-    pass(name, details);
+    await tracker.check(name, contractSurface, fn);
+    console.log(`PASS ${name}`);
   } catch (error) {
-    fail(name, error);
+    console.log(`FAIL ${name}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -116,7 +107,14 @@ async function collectEvents(prompt) {
 }
 
 async function pidsFor(pattern) {
-  const result = spawn("pgrep", ["-f", pattern], { cwd: process.cwd(), stdio: ["ignore", "pipe", "ignore"] });
+  const normalizedPattern = pattern.replace(/'/g, "''");
+  const result = process.platform === "win32"
+    ? spawn("powershell.exe", [
+      "-NoProfile",
+      "-Command",
+      `Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { $_.CommandLine -like '*${normalizedPattern}*' } | Select-Object -ExpandProperty ProcessId`,
+    ], { cwd: process.cwd(), stdio: ["ignore", "pipe", "ignore"] })
+    : spawn("pgrep", ["-f", pattern], { cwd: process.cwd(), stdio: ["ignore", "pipe", "ignore"] });
   let stdout = "";
   result.stdout.on("data", (chunk) => {
     stdout += chunk.toString();
@@ -144,7 +142,7 @@ try {
   });
   await waitForHealth(gatewayUrl, "production gateway");
 
-  await check("production Gateway health is external and not sidecar mock", async () => {
+  await check("production Gateway health is external and not sidecar mock", "mixed", async () => {
     const health = await request(gatewayUrl, "/health");
     if (!health.ok) throw new Error(`health ${health.status}`);
     if (health.payload.name !== "clawdesk-production-gateway-sim") throw new Error("wrong gateway name");
@@ -153,18 +151,18 @@ try {
     return health.payload;
   });
 
-  await check("production Gateway contract exposes desktop streaming surface", async () => {
+  await check("production Gateway contract exposes desktop streaming surface", "mixed", async () => {
     const contract = await request(gatewayUrl, "/contract");
     if (!contract.ok) throw new Error(`contract ${contract.status}`);
     const keys = new Set(contract.payload.endpoints.map((endpoint) => `${endpoint.method}:${endpoint.path}`));
-    for (const key of ["GET:/events", "POST:/chat", "POST:/permission-result", "GET:/identity/session", "POST:/license/activate-key"]) {
+    for (const key of ["GET:/events", "POST:/chat", "POST:/permission-result", "GET:/identity/session", "POST:/license/activate-key", "GET:/updates/manifest", "GET:/mcp/connectors", "POST:/mcp/revoke", "GET:/mcp/microsoft/oauth/start"]) {
       if (!keys.has(key)) throw new Error(`missing ${key}`);
     }
   });
 
   const email = `prod-sim-${randomUUID().slice(0, 8)}@example.com`;
   const password = "Password123!";
-  await check("identity bridge register confirm login", async () => {
+  await check("identity bridge register confirm login", "legacy", async () => {
     const registered = await request(gatewayUrl, "/identity/register", {
       method: "POST",
       body: { email, password, displayName: "Production Sim", mode: "personal" },
@@ -180,7 +178,7 @@ try {
     if (!session.ok || session.payload.email !== email) throw new Error("session failed");
   });
 
-  await check("Keygen/Paddle license bridge activates through production Gateway", async () => {
+  await check("legacy license bridge activates through production Gateway", "legacy", async () => {
     const fp = await request(gatewayUrl, "/machine/fingerprint");
     if (!fp.ok || !fp.payload.fingerprintHash) throw new Error("fingerprint missing");
     const activated = await request(gatewayUrl, "/license/activate-key", {
@@ -189,10 +187,10 @@ try {
     });
     if (!activated.ok || activated.payload.status.status !== "active") throw new Error("activation failed");
     const status = await request(gatewayUrl, "/license/status");
-    if (!status.ok || status.payload.status.licenseProvider !== "keygen") throw new Error("license status failed");
+    if (!status.ok || status.payload.status.licenseProvider !== "keygen") throw new Error("legacy license status failed");
   });
 
-  await check("WebSocket stream and permission roundtrip use production Gateway", async () => {
+  await check("WebSocket stream and permission roundtrip use production Gateway", "mixed", async () => {
     const events = await collectEvents("驗證 production Gateway simulator");
     const types = new Set(events.map((event) => event.type));
     if (!types.has("gateway.status") || !types.has("agent.message.done") || !types.has("canvas.patch")) {
@@ -200,7 +198,27 @@ try {
     }
   });
 
-  await check("production simulation does not launch desktop mock sidecar", async () => {
+  await check("MCP and release manifest bridge through production Gateway", "mixed", async () => {
+    const manifest = await request(gatewayUrl, "/updates/manifest");
+    if (!manifest.ok || !manifest.payload.releases?.[0]?.downloads?.macosUniversal) throw new Error("release manifest missing macOS download");
+    const connectors = await request(gatewayUrl, "/mcp/connectors");
+    if (!connectors.ok || !connectors.payload.connectors.some((connector) => connector.id === "microsoft-office")) {
+      throw new Error("MCP connectors missing");
+    }
+    const connected = await request(gatewayUrl, "/mcp/connect", {
+      method: "POST",
+      body: { connectorId: "microsoft-office", scopes: ["Files.Read"] },
+    });
+    if (!connected.ok || !connected.payload.grant?.scopes?.includes("Files.Read")) throw new Error("MCP grant failed");
+    const revoked = await request(gatewayUrl, "/mcp/revoke", { method: "POST", body: { connectorId: "microsoft-office" } });
+    if (!revoked.ok) throw new Error("MCP revoke failed");
+    const microsoftOAuth = await request(gatewayUrl, `/mcp/microsoft/oauth/start?scopes=${encodeURIComponent("openid profile offline_access User.Read Files.Read")}`);
+    if (!microsoftOAuth.ok || !microsoftOAuth.payload.authorizationUrl.includes("login.microsoftonline.com")) {
+      throw new Error("Microsoft OAuth bridge failed");
+    }
+  });
+
+  await check("production simulation does not launch desktop mock sidecar", "mixed", async () => {
     const sidecarPids = await pidsFor("sidecars/mock-gateway/server.mjs");
     const ownPid = String(process.pid);
     const filtered = sidecarPids.filter((pid) => pid !== ownPid);
@@ -217,7 +235,8 @@ try {
     backendUrl,
     result: checks.every((check) => check.ok) ? "PASS" : "FAIL",
     checks,
-    counts: { total: checks.length, failed: checks.filter((check) => !check.ok).length },
+    surfaces: tracker.summarizeSurfaces(),
+    counts: tracker.summarizeCounts(),
   };
   await fs.mkdir(reportDir, { recursive: true });
   await fs.writeFile(reportFile, `${JSON.stringify(report, null, 2)}\n`, "utf8");

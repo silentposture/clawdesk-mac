@@ -4,13 +4,13 @@ import {
   BACKEND_CONTRACT_VERSION,
   createBackendHealthPayload,
   mapKeygenEventToLicenseMutation,
-  mapPaddleEventToLicenseMutation,
+  mapLemonSqueezyEventToLicenseMutation,
   summarizeProductionEnv,
   validateBackendContractShape,
 } from "./contracts.mjs";
 
 describe("production backend contract", () => {
-  it("declares the required Paddle, Keygen, identity, and gateway adapters", () => {
+  it("declares the required Lemon Squeezy, Keygen, identity, and gateway adapters", () => {
     const validation = validateBackendContractShape(BACKEND_CONTRACT);
     const endpointKeys = BACKEND_CONTRACT.endpoints.map((endpoint) => `${endpoint.method}:${endpoint.path}`);
 
@@ -18,20 +18,31 @@ describe("production backend contract", () => {
     expect(BACKEND_CONTRACT.version).toBe(BACKEND_CONTRACT_VERSION);
     expect(endpointKeys).toContain("GET:/health");
     expect(endpointKeys).toContain("GET:/contract");
+    expect(endpointKeys).toContain("POST:/api/license/activate");
+    expect(endpointKeys).toContain("POST:/api/license/validate");
+    expect(endpointKeys).toContain("GET:/api/license/public-keys");
+    expect(endpointKeys).toContain("GET:/api/account/entitlements");
+    expect(endpointKeys).toContain("POST:/api/webhooks/lemonsqueezy");
     expect(endpointKeys).toContain("POST:/licenses/activate-key");
-    expect(endpointKeys).toContain("POST:/webhooks/paddle");
     expect(endpointKeys).toContain("POST:/webhooks/keygen");
+    expect(endpointKeys).toContain("GET:/updates/manifest");
+    expect(endpointKeys).toContain("POST:/mcp/revoke");
+    expect(endpointKeys).toContain("GET:/mcp/microsoft/oauth/start");
+    expect(endpointKeys).toContain("POST:/mcp/microsoft/oauth/callback");
   });
 
-  it("maps supported Paddle webhook events to deterministic license mutations", () => {
-    expect(mapPaddleEventToLicenseMutation("payment_succeeded")).toMatchObject({
+  it("maps Lemon Squeezy webhook events to deterministic license mutations", () => {
+    expect(mapLemonSqueezyEventToLicenseMutation("order_created")).toMatchObject({
       status: "active",
-      refreshSupportUpdatesUntil: true,
+      issueLicense: true,
     });
-    expect(mapPaddleEventToLicenseMutation("subscription.canceled")).toMatchObject({
-      status: "canceled",
+    expect(mapLemonSqueezyEventToLicenseMutation("subscription_payment_failed")).toMatchObject({
+      status: "past-due",
     });
-    expect(mapPaddleEventToLicenseMutation("unknown.event")).toBeNull();
+    expect(mapLemonSqueezyEventToLicenseMutation("order_refunded")).toMatchObject({
+      status: "revoked",
+    });
+    expect(mapLemonSqueezyEventToLicenseMutation("unknown.event")).toBeNull();
   });
 
   it("maps supported Keygen webhook events to deterministic license mutations", () => {
@@ -48,15 +59,15 @@ describe("production backend contract", () => {
   it("reports production env readiness without exposing secret values", () => {
     const summary = summarizeProductionEnv({
       CLAWDESK_GATEWAY_BASE_URL: "https://gateway.example.test",
-      PADDLE_API_KEY: "pdl_secret",
+      LEMON_SQUEEZY_API_KEY: "ls_api_secret",
     });
 
     expect(summary.ready).toBe(false);
-    expect(summary.required.find((item) => item.name === "PADDLE_API_KEY")).toEqual({
-      name: "PADDLE_API_KEY",
+    expect(summary.required.find((item) => item.name === "LEMON_SQUEEZY_API_KEY")).toEqual({
+      name: "LEMON_SQUEEZY_API_KEY",
       present: true,
     });
-    expect(JSON.stringify(summary)).not.toContain("pdl_secret");
+    expect(JSON.stringify(summary)).not.toContain("ls_api_secret");
   });
 
   it("includes contract metadata in health payloads", () => {
@@ -68,7 +79,7 @@ describe("production backend contract", () => {
     });
 
     expect(payload.contractVersion).toBe(BACKEND_CONTRACT_VERSION);
-    expect(payload.paymentProvider).toBe("paddle");
+    expect(payload.paymentProvider).toBe("lemon-squeezy");
     expect(payload.licenseProvider).toBe("keygen");
     expect(payload.productionEnv.ready).toBe(false);
   });

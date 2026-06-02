@@ -11,7 +11,7 @@ interface ProviderPanelProps {
   onSessionChange: (session: ProviderSession) => void;
 }
 
-const quickProviderIds = new Set(["chatgpt-pro", "openai-api", "google-gemini", "local-model", "mock"]);
+const quickProviderIds = new Set(["chatgpt-pro", "openai-codex", "openai-api", "google-gemini", "local-model", "mock"]);
 const quickProviders = llmProviderCatalog.filter((provider) => quickProviderIds.has(provider.id));
 const advancedProviders = llmProviderCatalog.filter((provider) => !quickProviderIds.has(provider.id));
 
@@ -32,6 +32,8 @@ export function ProviderPanel({
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [chatGptAccount, setChatGptAccount] = useState(session.accountEmail ?? "");
   const [chatGptModel, setChatGptModel] = useState(session.model ?? "gpt-5.4");
+  const [codexAccount, setCodexAccount] = useState(session.accountEmail ?? "");
+  const [codexModel, setCodexModel] = useState(session.model ?? "gpt-5.5");
   const [openAiModel, setOpenAiModel] = useState(session.model ?? "gpt-5.2");
   const [geminiModel, setGeminiModel] = useState(session.model ?? "gemini-1.5-flash");
   const [localEndpoint, setLocalEndpoint] = useState(session.endpoint ?? "http://127.0.0.1:11434");
@@ -94,6 +96,21 @@ export function ProviderPanel({
       setError(t("provider.error.missingAccount"));
     } else {
       setChatGptModel(response.model ?? chatGptModel);
+    }
+  }
+
+  async function configureOpenAiCodexAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!gatewayBaseUrl || !codexAccount.trim()) return;
+    setError(undefined);
+    const response = await callProviderEndpoint("/auth/openai-codex/oauth-login", {
+      accountEmail: codexAccount.trim(),
+      model: codexModel.trim(),
+    });
+    if (!response) {
+      setError(t("provider.error.missingAccount"));
+    } else {
+      setCodexModel(response.model ?? codexModel);
     }
   }
 
@@ -267,6 +284,41 @@ export function ProviderPanel({
                       >
                         <Sparkles size={16} />
                         {t("provider.chatgpt.submit")}
+                      </button>
+                    </form>
+                  </article>
+                );
+              }
+
+              if (provider.id === "openai-codex") {
+                return (
+                  <article className="provider-card" key={provider.id}>
+                    <div>
+                      <Sparkles size={20} />
+                      <h3>{provider.shortName}</h3>
+                    </div>
+                    <p>{provider.description}</p>
+                    <form className="stacked-form" onSubmit={configureOpenAiCodexAccount}>
+                      <input
+                        value={codexModel}
+                        onChange={(event) => setCodexModel(event.target.value)}
+                        placeholder={provider.modelPlaceholder}
+                        autoComplete="off"
+                      />
+                      <input
+                        value={codexAccount}
+                        onChange={(event) => setCodexAccount(event.target.value)}
+                        placeholder={provider.accountPlaceholder ?? ""}
+                        type="email"
+                        autoComplete="email"
+                      />
+                      <button
+                        className="secondary-button"
+                        type="submit"
+                        disabled={busy || !gatewayBaseUrl || !codexAccount.trim() || !codexModel.trim()}
+                      >
+                        <Sparkles size={16} />
+                        Codex OAuth 登入
                       </button>
                     </form>
                   </article>

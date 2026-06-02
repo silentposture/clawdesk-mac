@@ -20,9 +20,10 @@ export interface ReleaseReadinessSummary {
 export interface ReleaseReadinessInput {
   legalManifestCurrent: boolean;
   hasProductionGateway: boolean;
-  hasPaddleCredentials: boolean;
+  hasLemonSqueezyCredentials: boolean;
   hasKeygenCredentials: boolean;
   hasSsoCredentials: boolean;
+  hasMicrosoftGraphCredentials: boolean;
   hasAppleSigningEnv: boolean;
   hasNotarizationCredential: boolean;
   hasDeveloperIdIdentity: boolean;
@@ -36,9 +37,10 @@ export interface ReleaseReadinessInput {
 export const defaultMockCandidateReadiness: ReleaseReadinessInput = {
   legalManifestCurrent: true,
   hasProductionGateway: false,
-  hasPaddleCredentials: false,
+  hasLemonSqueezyCredentials: false,
   hasKeygenCredentials: false,
   hasSsoCredentials: false,
+  hasMicrosoftGraphCredentials: false,
   hasAppleSigningEnv: false,
   hasNotarizationCredential: false,
   hasDeveloperIdIdentity: false,
@@ -75,13 +77,13 @@ export function buildReleaseReadinessMatrix(input: ReleaseReadinessInput): Relea
       nextAction: "建立 production Gateway / backend connector，替換 mock sidecar 合約。",
     },
     {
-      id: "paddle",
+      id: "lemon-squeezy",
       category: "payment",
-      label: "Paddle 金流環境",
-      status: blockedWhenStrict(input, input.hasPaddleCredentials),
-      current: input.hasPaddleCredentials ? "已設定 production credentials" : "目前僅 mock",
-      required: "正式版需 PADDLE_API_KEY 與 PADDLE_WEBHOOK_SECRET。",
-      nextAction: "在正式後端環境設定 Paddle credential，桌面端不得保存信用卡資料。",
+      label: "Lemon Squeezy 金流環境",
+      status: blockedWhenStrict(input, input.hasLemonSqueezyCredentials),
+      current: input.hasLemonSqueezyCredentials ? "已設定 production credentials" : "目前僅 mock",
+      required: "正式版需 LEMON_SQUEEZY_API_KEY、LEMON_SQUEEZY_WEBHOOK_SECRET、LEMON_SQUEEZY_STORE_ID。",
+      nextAction: "建立 Lemon Squeezy store/product/license 設定，後端驗證 X-Signature 後發放授權。",
     },
     {
       id: "keygen",
@@ -100,6 +102,15 @@ export function buildReleaseReadinessMatrix(input: ReleaseReadinessInput): Relea
       current: input.hasSsoCredentials ? "已設定 issuer/client" : "目前僅本機 mock 登入",
       required: "個人版與企業版都需 CLAWDESK_SSO_ISSUER_URL 與 CLAWDESK_SSO_CLIENT_ID。",
       nextAction: "接上 Apple / Google / Microsoft / Email 驗證與回信確認流程。",
+    },
+    {
+      id: "microsoft-graph",
+      category: "identity",
+      label: "Microsoft Graph MCP OAuth",
+      status: blockedWhenStrict(input, input.hasMicrosoftGraphCredentials),
+      current: input.hasMicrosoftGraphCredentials ? "已設定 Microsoft Graph OAuth app" : "尚未設定",
+      required: "需 MICROSOFT_GRAPH_TENANT_ID、MICROSOFT_GRAPH_CLIENT_ID、MICROSOFT_GRAPH_CLIENT_SECRET、MICROSOFT_GRAPH_REDIRECT_URI。",
+      nextAction: "在 Microsoft Entra 建立 app registration，設定 redirect URI 與 delegated Graph scopes。",
     },
     {
       id: "apple-signing-env",

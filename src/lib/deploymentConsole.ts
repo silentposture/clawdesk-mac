@@ -32,7 +32,8 @@ export interface DeploymentConsoleSnapshot {
   backendReady: boolean;
   gatewayMode: string;
   backendService: string;
-  keygenReadonly: string;
+  legacyLicenseReadonly: string;
+  canonicalLicenseReadonly: string;
   minimumServices: string[];
   recommendedServices: string[];
   productionModules: string[];
@@ -52,6 +53,8 @@ interface HealthPayload {
 interface LicensePayload {
   status?: {
     licenseProvider?: string;
+    entitlementAuthority?: string;
+    canonicalPlanKey?: string;
     status?: string;
     lastValidationCode?: string;
   };
@@ -70,12 +73,15 @@ export function buildDeploymentConsoleSnapshot({
 }): DeploymentConsoleSnapshot {
   const backend = backendStatus ?? health?.backend;
   const keygenCode = license?.status?.lastValidationCode ?? license?.status?.status ?? "unknown";
+  const canonicalAuthority = license?.status?.entitlementAuthority ?? license?.status?.licenseProvider ?? "universal-server";
+  const canonicalPlanKey = license?.status?.canonicalPlanKey ?? "clawdesk.free";
   return {
     gatewayReady: health?.ok === true,
     backendReady: backend?.status === "ready" || Boolean(backend?.service),
     gatewayMode: health?.mode ?? health?.name ?? "unknown",
     backendService: backend?.service ?? "unknown",
-    keygenReadonly: `${license?.status?.licenseProvider ?? "keygen"}:${keygenCode}`,
+    legacyLicenseReadonly: `${license?.status?.licenseProvider ?? "keygen"}:${keygenCode}`,
+    canonicalLicenseReadonly: `${canonicalAuthority}:${canonicalPlanKey}:${keygenCode}`,
     minimumServices: plan?.minimumServices ?? [],
     recommendedServices: plan?.recommendedServices ?? [],
     productionModules: plan?.productionModules ?? [],

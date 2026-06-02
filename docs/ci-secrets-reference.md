@@ -5,14 +5,19 @@
 ## 必要 secrets
 
 - `CLAWDESK_GATEWAY_BASE_URL`: production Gateway base URL。
-- `PADDLE_API_KEY`: Paddle server-side API key。
-- `PADDLE_WEBHOOK_SECRET`: Paddle webhook signature secret。
+- `LEMON_SQUEEZY_API_KEY`: Lemon Squeezy server-side API key。
+- `LEMON_SQUEEZY_WEBHOOK_SECRET`: Lemon Squeezy webhook signing secret。
+- `LEMON_SQUEEZY_STORE_ID`: Lemon Squeezy store id。
 - `KEYGEN_ACCOUNT_ID`: Keygen account id。
 - `KEYGEN_PRODUCT_ID`: Keygen product id。
 - `KEYGEN_API_TOKEN`: Keygen API token。
 - `KEYGEN_SIGNING_PUBLIC_KEY`: Keygen signing public key。
 - `CLAWDESK_SSO_ISSUER_URL`: SSO issuer URL。
 - `CLAWDESK_SSO_CLIENT_ID`: SSO client id。
+- `MICROSOFT_GRAPH_TENANT_ID`: Microsoft Entra tenant id，個人/多租戶測試可用 `common`。
+- `MICROSOFT_GRAPH_CLIENT_ID`: Microsoft Graph OAuth app client id。
+- `MICROSOFT_GRAPH_CLIENT_SECRET`: Microsoft Graph OAuth app client secret，僅放後端。
+- `MICROSOFT_GRAPH_REDIRECT_URI`: Microsoft Graph OAuth redirect URI。
 - `APPLE_TEAM_ID`: Apple Developer Team ID。
 - `APPLE_ID`: Apple ID email for notarization。
 - `APPLE_APP_SPECIFIC_PASSWORD`: Apple app-specific password。

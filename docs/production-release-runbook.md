@@ -1,29 +1,32 @@
 # ClawDesk Production Release Runbook
 
-本文件定義 ClawDesk 從 mock release candidate 進入 production build 的最小安全流程。重點是先建立可重複檢查的 release gate，再接入正式 Paddle、Keygen、SSO、Apple signing 與 notarization。
+本文件定義 ClawDesk 從 mock release candidate 進入 production build 的最小安全流程。重點是先建立可重複檢查的 release gate，再接入正式 Lemon Squeezy、Keygen、SSO、Apple signing 與 notarization。
+
+目前 repo 內的 backend simulator 已開始對齊 NaviaWorks `UniversalServer` 形狀：正式入口以 `/api/auth/*`、`/api/account/entitlements`、`/api/license/*`、`/api/webhooks/lemonsqueezy` 為主；舊 `/auth/*`、`/licenses/*`、`/license/*` 仍保留作 compatibility shim。
 
 CI workflow 參考：
 
-- [release-macos workflow](/Users/huangkuoling/Documents/New%20project/.github/workflows/release-macos.yml)
-- [CI secrets reference](/Users/huangkuoling/Documents/New%20project/docs/ci-secrets-reference.md)
+- [release-macos workflow](/Users/huangkuoling/Documents/ClawDesk/.github/workflows/release-macos.yml)
+- [CI secrets reference](/Users/huangkuoling/Documents/ClawDesk/docs/ci-secrets-reference.md)
 
 ## 原則
 
 - production credential 只存在於 CI secret store 或本機 shell session，不寫入 repo。
-- 桌面端不保存 Paddle API key、Keygen API token、SSO client secret 或 Apple notarization 密碼。
+- 桌面端不保存 Lemon Squeezy API key、Keygen API token、SSO client secret 或 Apple notarization 密碼。
 - production Tauri config 不打包 mock Gateway、backend simulator 或 mock credential flow。
 - 所有正式 build 必須先通過 `release:guard:strict`。
 - Apple signing / notarization 失敗時不允許產出 production release。
 
 ## 環境變數
 
-以 [.env.production.example](/Users/huangkuoling/Documents/New%20project/.env.production.example) 為準。正式 build 前至少需要：
+以 [.env.production.example](/Users/huangkuoling/Documents/ClawDesk/.env.production.example) 為準。正式 build 前至少需要：
 
 ```text
 CLAWDESK_RELEASE_CHANNEL=production
 CLAWDESK_GATEWAY_BASE_URL
-PADDLE_API_KEY
-PADDLE_WEBHOOK_SECRET
+LEMON_SQUEEZY_API_KEY
+LEMON_SQUEEZY_WEBHOOK_SECRET
+LEMON_SQUEEZY_STORE_ID
 KEYGEN_ACCOUNT_ID
 KEYGEN_PRODUCT_ID
 KEYGEN_API_TOKEN
@@ -59,7 +62,7 @@ npm run release:guard:strict
 
 此步會硬擋：
 
-- 缺少 production Gateway、Paddle、Keygen、SSO env。
+- 缺少 production Gateway、Lemon Squeezy、Keygen、SSO env。
 - 缺少 Apple signing / notarization env。
 - 找不到 Developer ID Application certificate。
 - production Tauri config 包含 mock resource。
@@ -128,12 +131,18 @@ npm run smoke:dmg
 npm run release:summary
 ```
 
+CI `release-macos` 已串接 `sign:mac:notarize -- --strict`，本機可用一條命令完成打包+公證驗證：
+
+```bash
+npm run release:mac:build-and-notarize
+```
+
 完成後可優先查看 `artifacts/release-summary/latest-release-summary.md` 作為單一總覽。
 
 ## 目前 production 阻塞項
 
 - 尚未設定 production Gateway。
-- 尚未設定 Paddle production credentials。
+- 尚未設定 Lemon Squeezy production credentials。
 - 尚未設定 Keygen production credentials。
 - 尚未設定 Apple / Google / Microsoft / Email SSO issuer。
 - 尚未匯入 Developer ID Application certificate。

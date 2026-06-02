@@ -27,6 +27,12 @@ export interface LocalStackStatus {
   logs: string[];
 }
 
+export interface MachineIdentityRecord {
+  hwid: string;
+  instanceId: string;
+  source: string;
+}
+
 const FALLBACK_PORTS = [18890, 18790];
 const GATEWAY_PROTOCOL = "http://127.0.0.1:";
 const GATEWAY_WS_PROTOCOL = "ws://127.0.0.1:";
@@ -280,4 +286,25 @@ export async function getActiveWindowSnapshot(): Promise<DesktopWindowSnapshot |
 export async function rehearseDesktopAction(request: DesktopActionRequest): Promise<DesktopActionRehearsal | undefined> {
   if (!hasTauriRuntime()) return undefined;
   return invoke<DesktopActionRehearsal>("rehearse_desktop_action", { request });
+}
+
+export async function readLicenseCacheFromApp<T>(): Promise<T | undefined> {
+  if (!hasTauriRuntime()) return undefined;
+  const raw = await invoke<string | null>("read_license_cache");
+  return raw ? (JSON.parse(raw) as T) : undefined;
+}
+
+export async function writeLicenseCacheToApp(record: unknown): Promise<void> {
+  if (!hasTauriRuntime()) return;
+  await invoke("write_license_cache", { recordJson: JSON.stringify(record) });
+}
+
+export async function deleteLicenseCacheFromApp(): Promise<boolean> {
+  if (!hasTauriRuntime()) return false;
+  return invoke<boolean>("delete_license_cache");
+}
+
+export async function getMachineIdentityFromApp(): Promise<MachineIdentityRecord | undefined> {
+  if (!hasTauriRuntime()) return undefined;
+  return invoke<MachineIdentityRecord>("get_machine_identity");
 }

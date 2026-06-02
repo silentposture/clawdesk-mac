@@ -20,8 +20,8 @@ import {
   PlugZap,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { McpActionPreview, McpConnector, McpTool } from "../lib/mcp";
-import { mcpTierLabel, planMcpAction, summarizeConnector } from "../lib/mcp";
+import type { McpActionPreview, McpConnectionGrant, McpConnector, McpTool } from "../lib/mcp";
+import { mcpTierLabel, planMcpAction, recommendedScopes, summarizeConnector } from "../lib/mcp";
 
 interface McpPanelProps {
   gatewayBaseUrl?: string;
@@ -71,9 +71,11 @@ const riskLabel: Record<McpTool["risk"], string> = {
 
 export function McpPanel({ gatewayBaseUrl, onClose }: McpPanelProps): JSX.Element {
   const [connectors, setConnectors] = useState<McpConnector[]>([]);
+  const [grants, setGrants] = useState<McpConnectionGrant[]>([]);
   const [selectedConnectorId, setSelectedConnectorId] = useState("microsoft-office");
   const [target, setTarget] = useState("~/Documents/ClawDesk");
   const [preview, setPreview] = useState<McpActionPreview>();
+  const [oauthMessage, setOauthMessage] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -93,8 +95,9 @@ export function McpPanel({ gatewayBaseUrl, onClose }: McpPanelProps): JSX.Elemen
     try {
       const response = await fetch(`${gatewayBaseUrl}/mcp/connectors`);
       if (!response.ok) throw new Error("bad response");
-      const payload = (await response.json()) as { connectors: McpConnector[] };
+      const payload = (await response.json()) as { connectors: McpConnector[]; grants?: McpConnectionGrant[] };
       setConnectors(payload.connectors);
+      setGrants(payload.grants ?? []);
       setSelectedConnectorId(payload.connectors[0]?.id ?? "microsoft-office");
     } catch {
       setError("無法讀取 MCP 連接器清單。");
@@ -105,18 +108,63 @@ export function McpPanel({ gatewayBaseUrl, onClose }: McpPanelProps): JSX.Elemen
 
   async function connect(connectorId: string) {
     if (!gatewayBaseUrl) return;
+    const connector = connectors.find((item) => item.id === connectorId);
+    if (!connector) return;
     setBusy(true);
     setError(undefined);
     try {
       const response = await fetch(`${gatewayBaseUrl}/mcp/connect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ connectorId }),
+        body: JSON.stringify({
+          connectorId,
+          scopes: recommendedScopes(connector),
+        }),
       });
       if (!response.ok) throw new Error("bad response");
       await loadConnectors();
     } catch {
       setError("MCP 連接器啟用失敗。");
+      setBusy(false);
+    }
+  }
+
+  async function revoke(connectorId: string) {
+    if (!gatewayBaseUrl) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const response = await fetch(`${gatewayBaseUrl}/mcp/revoke`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ connectorId }),
+      });
+      if (!response.ok) throw new Error("bad response");
+      setPreview(undefined);
+      await loadConnectors();
+    } catch {
+      setError("MCP 授權撤銷失敗。");
+      setBusy(false);
+    }
+  }
+
+  async function startMicrosoftOAuth() {
+    if (!gatewayBaseUrl) return;
+    setBusy(true);
+    setError(undefined);
+    setOauthMessage(undefined);
+    try {
+      const response = await fetch(`${gatewayBaseUrl}/mcp/microsoft/oauth/start?scopes=${encodeURIComponent("openid profile offline_access User.Read Files.Read Files.ReadWrite Mail.ReadWrite Calendars.Read")}`);
+      const payload = (await response.json()) as { authorizationUrl?: string; configured?: boolean; faultCode?: string; missingEnv?: string[] };
+      if (!response.ok) throw new Error("bad response");
+      setOauthMessage(
+        payload.configured
+          ? `Microsoft OAuth URL 已建立：${payload.authorizationUrl}`
+          : `Microsoft OAuth 尚未設定 production credentials：${payload.missingEnv?.join("、") ?? payload.faultCode}`,
+      );
+    } catch {
+      setError("Microsoft OAuth 啟動失敗。");
+    } finally {
       setBusy(false);
     }
   }
@@ -194,7 +242,30 @@ export function McpPanel({ gatewayBaseUrl, onClose }: McpPanelProps): JSX.Elemen
                   >
                     {selectedConnector.status === "connected" ? "已啟用" : "啟用"}
                   </button>
+                  {selectedConnector.status === "connected" ? (
+                    <button className="secondary-button" type="button" disabled={busy} onClick={() => revoke(selectedConnector.id)}>
+                      撤銷授權
+                    </button>
+                  ) : null}
+                  {selectedConnector.id === "microsoft-office" ? (
+                    <button className="secondary-button" type="button" disabled={busy} onClick={startMicrosoftOAuth}>
+                      Microsoft OAuth
+                    </button>
+                  ) : null}
                 </div>
+                {oauthMessage ? <p className="panel-success">{oauthMessage}</p> : null}
+                {selectedConnector.scopes?.length ? (
+                  <div className="mcp-preview">
+                    <span>授權範圍</span>
+                    <p>
+                      {selectedConnector.scopes.map((scope) => `${scope.label} (${scope.risk})`).join("、")}
+                    </p>
+                    <small>
+                      目前 grant：
+                      {grants.find((grant) => grant.connectorId === selectedConnector.id)?.scopes.join("、") ?? "尚未授權"}
+                    </small>
+                  </div>
+                ) : null}
 
                 <label className="mcp-target">
                   <span>目標路徑 / 資源</span>
@@ -234,6 +305,12 @@ export function McpPanel({ gatewayBaseUrl, onClose }: McpPanelProps): JSX.Elemen
                       </small>
                     ) : null}
                     <small>{preview.requiresApproval ? "需要使用者授權後才會執行" : "低風險受信任工作區動作"}</small>
+                    {preview.grant ? (
+                      <small>
+                        Grant：{preview.grant.status}
+                        {preview.grant.missingScopes.length ? `，缺少 scope：${preview.grant.missingScopes.join("、")}` : "，scope 已滿足"}
+                      </small>
+                    ) : null}
                   </div>
                 ) : null}
               </>

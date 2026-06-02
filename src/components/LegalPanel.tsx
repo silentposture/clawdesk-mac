@@ -81,7 +81,7 @@ export function LegalPanel({ gatewayBaseUrl, legalConsent, onClose }: LegalPanel
         <header className="provider-header">
           <div>
             <h2 id="legal-title">版權與授權中心</h2>
-            <p>ClawDesk 採閉源商業授權，同時顯示安裝同意、訂閱揭露、使用者內容權利與 OpenClaw MIT 聲明。</p>
+            <p>ClawDesk 由個人開發者 Alisonsoftware 開發，採閉源商業授權，同時顯示安裝同意、訂閱揭露、使用者內容權利與 OpenClaw MIT 聲明。</p>
           </div>
           <button className="icon-button" type="button" aria-label="關閉" onClick={onClose}>
             <X size={18} />

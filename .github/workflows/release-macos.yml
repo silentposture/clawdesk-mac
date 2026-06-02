@@ -160,6 +160,9 @@ jobs:
       - name: Smoke dmg
         run: npm run smoke:dmg
 
+      - name: Notarize DMG
+        run: npm run sign:mac:notarize -- --strict
+
       - name: Generate checksums
         shell: bash
         run: |

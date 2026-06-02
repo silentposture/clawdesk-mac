@@ -33,6 +33,8 @@ interface HealthPayload {
 interface LicensePayload {
   status?: {
     licenseProvider?: string;
+    entitlementAuthority?: string;
+    canonicalPlanKey?: string;
     status?: string;
     lastValidationCode?: string;
   };
@@ -167,7 +169,8 @@ export function DeploymentConsolePanel({ gateway, onClose }: DeploymentConsolePa
               <div><dt>{t("deployment.backendReady")}</dt><dd>{String(snapshot.backendReady)}</dd></div>
               <div><dt>{t("deployment.gatewayMode")}</dt><dd>{snapshot.gatewayMode}</dd></div>
               <div><dt>{t("deployment.backendService")}</dt><dd>{snapshot.backendService}</dd></div>
-              <div><dt>{t("deployment.keygenReadonly")}</dt><dd>{snapshot.keygenReadonly}</dd></div>
+              <div><dt>{t("deployment.canonicalLicenseReadonly")}</dt><dd>{snapshot.canonicalLicenseReadonly}</dd></div>
+              <div><dt>{t("deployment.legacyLicenseReadonly")}</dt><dd>{snapshot.legacyLicenseReadonly}</dd></div>
             </dl>
           </article>
 

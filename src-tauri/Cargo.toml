@@ -1,8 +1,9 @@
 [package]
 name = "openclaw-desktop"
 version = "0.1.0"
+license = "MIT"
 description = "ClawDesk OpenClaw-compatible GUI desktop MVP"
-authors = ["ClawDesk Contributors"]
+authors = ["Alisonsoftware"]
 edition = "2021"
 
 [lib]

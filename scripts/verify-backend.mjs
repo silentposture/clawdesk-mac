@@ -86,10 +86,10 @@ try {
   await check("backend health and simulated deployment metadata", async () => {
     const health = await waitForHealth();
     if (!health.backend?.persistence?.enabled) throw new Error("persistence must be enabled for backend verification");
-    if (health.backend.providers.payment !== "paddle-mock") throw new Error("payment provider metadata missing");
+    if (health.backend.providers.payment !== "lemon-squeezy-mock") throw new Error("payment provider metadata missing");
     const plan = await getJson("/backend/deployment-plan");
     if (!plan.response.ok) throw new Error("deployment plan endpoint failed");
-    for (const moduleName of ["Paddle webhook service", "Keygen license adapter", "MCP connector proxy service"]) {
+    for (const moduleName of ["Lemon Squeezy webhook service", "Keygen license adapter", "MCP connector proxy service"]) {
       if (!plan.payload.productionModules.includes(moduleName)) throw new Error(`missing production module: ${moduleName}`);
     }
   });
@@ -121,6 +121,15 @@ try {
 
     const saved = await postJson("/backend/save-state", {});
     if (!saved.response.ok || !saved.payload.saved) throw new Error("state save failed");
+
+    const lemon = await postJson("/webhooks/lemon-squeezy/mock", {
+      eventType: "order_created",
+      plan: "yearly",
+      licenseKey: "CLWD-LEMON-SQZ01-BACK1-00001",
+    });
+    if (!lemon.response.ok || lemon.payload.status.paymentProvider !== "lemon-squeezy") {
+      throw new Error("Lemon Squeezy beta mock issue failed");
+    }
 
     const audit = await getJson("/backend/audit?limit=100");
     if (!audit.response.ok || audit.payload.events.length < 3) throw new Error("audit events missing");

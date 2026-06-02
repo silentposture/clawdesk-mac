@@ -1,0 +1,67 @@
+{
+  "platform": "mac",
+  "version": "2026-05-16",
+  "p0": [
+    { "name": "release:preflight:production", "mustRun": true, "owner": "release", "depends": ["release:preflight:production:strict"] },
+    { "name": "release:preflight:production:strict", "mustRun": true, "owner": "release", "depends": ["release:summary"] },
+    { "name": "release:summary", "mustRun": true, "owner": "release", "depends": [] },
+    { "name": "verify:backend:production", "mustRun": true, "owner": "verify", "depends": ["verify:backend:sim", "verify:mvp"] },
+    { "name": "verify:backend:sim", "mustRun": true, "owner": "verify", "depends": [] },
+    { "name": "verify:mvp", "mustRun": true, "owner": "verify", "depends": [] },
+    { "name": "verify:production-gateway:sim", "mustRun": true, "owner": "verify", "depends": [] },
+    { "name": "qa:full-cycle", "mustRun": true, "owner": "qa", "depends": ["qa:release:dmg", "smoke:tauri:app"] },
+    { "name": "qa:release:dmg", "mustRun": true, "owner": "qa", "depends": ["smoke:dmg", "smoke:tauri:app"] },
+    { "name": "smoke:tauri:app", "mustRun": true, "owner": "qa", "depends": [] },
+    { "name": "smoke:dmg", "mustRun": true, "owner": "qa", "depends": [] },
+    { "name": "tauri:build:prod:app", "mustRun": true, "owner": "build", "depends": ["release:preflight:production", "qa:full-cycle"] },
+    { "name": "tauri:build:prod:dmg", "mustRun": true, "owner": "build", "depends": ["tauri:build:prod:app"] }
+  ],
+  "p0_exceptions": {
+    "allowed_to_drop_from_release": [
+      "sign:win-installer",
+      "sign:win:doctor",
+      "verify:windows-signing",
+      "windows-signing-doctor",
+      "verify:production-gateway:compose",
+      "verify:lemon:production",
+      "tauri:build:win",
+      "tauri:build:store:win",
+      "tauri:build:prod:win",
+      "tauri:dev:win",
+      "smoke:win-app",
+      "smoke:win-installer",
+      "smoke:store-installer:win",
+      "qa:full:win",
+      "qa:full:win:sign",
+      "qa:beta-direct:win",
+      "qa:release:win",
+      "qa:store:win",
+      "generate-windows-release-metadata",
+      "release:metadata:win",
+      "release:metadata:win:check",
+      "release:guard:beta",
+      "beta:env:doctor",
+      "beta:readiness",
+      "beta:readiness:check",
+      "beta:handoff:prepare"
+    ]
+  },
+  "p0_retain_or_add": {
+    "retain_from_windows": [
+      "verify:backend",
+      "verify:mvp",
+      "verify:backend:sim",
+      "verify:production-gateway:sim"
+    ],
+    "add_to_mac": [
+      "sign:mac:doctor",
+      "sign:mac:notarize",
+      "release:mac:build-and-notarize",
+      "sbom",
+      "sbom:check",
+      "release:configs:check",
+      "release:metadata:mac",
+      "release:metadata:mac:check"
+    ]
+  }
+}

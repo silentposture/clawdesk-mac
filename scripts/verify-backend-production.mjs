@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { createVerifyReportTracker } from "./lib/verify-report.mjs";
 
 const port = Number(process.env.CLAWDESK_PRODUCTION_BACKEND_PORT ?? 19140);
 const baseUrl = `http://127.0.0.1:${port}`;
@@ -13,17 +14,18 @@ const stateFile = path.join(stateDir, "state.json");
 
 const keyPair = crypto.generateKeyPairSync("ed25519");
 const keygenPublicKey = keyPair.publicKey.export({ type: "spki", format: "pem" });
-const paddleWebhookSecret = "test_paddle_webhook_secret";
+const lemonSqueezyWebhookSecret = "test_lemon_squeezy_webhook_secret";
 const keygenApiToken = "test_keygen_api_token";
 const seedLicenseKey = "CLWD-PRO-YEARLY-2026-DEV";
 const machineFingerprintHash = "mfp-production-adapter-smoke";
 
-const checks = [];
+const tracker = createVerifyReportTracker();
+const checks = tracker.checks;
 let backend;
 
 function redact(value) {
   return JSON.stringify(value)
-    .replaceAll(paddleWebhookSecret, "[REDACTED:PADDLE_WEBHOOK_SECRET]")
+    .replaceAll(lemonSqueezyWebhookSecret, "[REDACTED:LEMON_SQUEEZY_WEBHOOK_SECRET]")
     .replaceAll(keygenApiToken, "[REDACTED:KEYGEN_API_TOKEN]")
     .replace(/-----BEGIN PUBLIC KEY-----[\s\S]+?-----END PUBLIC KEY-----/g, "[REDACTED:KEYGEN_PUBLIC_KEY]");
 }
@@ -39,9 +41,8 @@ function createSignedKeygenLicenseFile(payload) {
   return `-----BEGIN LICENSE FILE-----\n${body}\n-----END LICENSE FILE-----`;
 }
 
-function signPaddlePayload(rawBody, timestamp = Math.floor(Date.now() / 1000)) {
-  const h1 = crypto.createHmac("sha256", paddleWebhookSecret).update(`${timestamp}:${rawBody}`).digest("hex");
-  return `ts=${timestamp};h1=${h1}`;
+function signLemonSqueezyPayload(rawBody) {
+  return crypto.createHmac("sha256", lemonSqueezyWebhookSecret).update(rawBody).digest("hex");
 }
 
 function spawnBackend() {
@@ -53,8 +54,9 @@ function spawnBackend() {
       CLAWDESK_BACKEND_STATE_FILE: stateFile,
       CLAWDESK_BACKEND_ADAPTER_MODE: "production",
       CLAWDESK_GATEWAY_BASE_URL: "https://gateway.clawdesk.example",
-      PADDLE_API_KEY: "test_paddle_api_key",
-      PADDLE_WEBHOOK_SECRET: paddleWebhookSecret,
+      LEMON_SQUEEZY_API_KEY: "test_lemon_squeezy_api_key",
+      LEMON_SQUEEZY_WEBHOOK_SECRET: lemonSqueezyWebhookSecret,
+      LEMON_SQUEEZY_STORE_ID: "12345",
       KEYGEN_ACCOUNT_ID: "clawdesk-test",
       KEYGEN_PRODUCT_ID: "clawdesk-desktop",
       KEYGEN_API_TOKEN: keygenApiToken,
@@ -62,6 +64,10 @@ function spawnBackend() {
       KEYGEN_API_BASE_URL: "https://api.keygen.sh",
       CLAWDESK_SSO_ISSUER_URL: "https://sso.clawdesk.example",
       CLAWDESK_SSO_CLIENT_ID: "clawdesk-desktop",
+      MICROSOFT_GRAPH_TENANT_ID: "common",
+      MICROSOFT_GRAPH_CLIENT_ID: "ms-client-id",
+      MICROSOFT_GRAPH_CLIENT_SECRET: "ms-client-secret",
+      MICROSOFT_GRAPH_REDIRECT_URI: "http://127.0.0.1:19140/mcp/microsoft/oauth/callback",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -88,15 +94,16 @@ async function waitForHealth(timeoutMs = 12000) {
   throw new Error(`Timed out waiting for production backend on ${baseUrl}`);
 }
 
-async function check(name, action) {
+async function check(name, contractSurface, action) {
   try {
-    const details = await action();
-    checks.push({ name, ok: true, details: safeJson(details ?? {}) });
+    const result = await tracker.check(name, contractSurface, action);
+    const last = checks[checks.length - 1];
+    if (last?.ok) {
+      last.details = safeJson(result.details ?? {});
+    }
     console.log(`PASS ${name}`);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    checks.push({ name, ok: false, error: message });
-    console.log(`FAIL ${name}: ${message}`);
+    console.log(`FAIL ${name}: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
@@ -119,10 +126,8 @@ async function writeReport(status) {
     adapterMode: "production",
     status,
     checks,
-    counts: {
-      total: checks.length,
-      failed: checks.filter((item) => !item.ok).length,
-    },
+    surfaces: tracker.summarizeSurfaces(),
+    counts: tracker.summarizeCounts(),
   };
   const serialized = redact(report);
   await fs.mkdir(reportDir, { recursive: true });
@@ -135,12 +140,12 @@ try {
   backend = spawnBackend();
   await waitForHealth();
 
-  await check("production backend health is ready and redacted", async () => {
+  await check("production backend health is ready and redacted", "mixed", async () => {
     const { response, payload } = await request("/health");
     if (!response.ok) throw new Error(`health HTTP ${response.status}`);
     if (payload.adapterMode !== "production") throw new Error(`wrong adapter mode: ${payload.adapterMode}`);
     if (payload.adapterReadiness?.ready !== true) throw new Error("production adapter readiness is not ready");
-    if (JSON.stringify(payload).includes(paddleWebhookSecret) || JSON.stringify(payload).includes(keygenApiToken)) {
+    if (JSON.stringify(payload).includes(lemonSqueezyWebhookSecret) || JSON.stringify(payload).includes(keygenApiToken)) {
       throw new Error("health leaked production secrets");
     }
     return {
@@ -151,36 +156,52 @@ try {
     };
   });
 
-  await check("backend contract exposes production Paddle Keygen SSO endpoints", async () => {
+  await check("backend contract exposes production payment licensing SSO MCP endpoints", "mixed", async () => {
     const { response, payload } = await request("/contract");
     if (!response.ok) throw new Error(`contract HTTP ${response.status}`);
     const keys = new Set((payload.endpoints ?? []).map((endpoint) => `${endpoint.method}:${endpoint.path}`));
-    for (const key of ["POST:/webhooks/paddle", "POST:/webhooks/keygen", "POST:/licenses/validate", "POST:/auth/sso/start", "POST:/auth/sso/finish"]) {
+    for (const key of ["POST:/api/webhooks/lemonsqueezy", "POST:/webhooks/keygen", "POST:/api/license/validate", "POST:/auth/sso/start", "POST:/auth/sso/finish", "GET:/mcp/microsoft/oauth/start", "POST:/mcp/microsoft/oauth/callback", "GET:/api/account/entitlements"]) {
       if (!keys.has(key)) throw new Error(`missing contract endpoint ${key}`);
     }
     return { version: payload.version, endpoints: keys.size };
   });
 
-  await check("Paddle webhook rejects invalid signature and accepts valid signature", async () => {
-    const body = JSON.stringify({ eventType: "payment_succeeded", licenseKey: seedLicenseKey });
-    const invalid = await request("/webhooks/paddle", {
+  await check("Microsoft Graph OAuth start builds authorization URL and callback fails closed without code", "mixed", async () => {
+    const started = await request(`/mcp/microsoft/oauth/start?scopes=${encodeURIComponent("openid profile offline_access User.Read Files.Read")}`);
+    if (!started.response.ok) throw new Error(`Microsoft OAuth start rejected: ${started.response.status}`);
+    if (!started.payload.configured) throw new Error("Microsoft OAuth should be configured in production smoke env");
+    if (!started.payload.authorizationUrl.includes("login.microsoftonline.com")) throw new Error("Microsoft authorization URL missing");
+    if (!started.payload.authorizationUrl.includes("code_challenge_method=S256")) throw new Error("PKCE challenge missing");
+    const callback = await request("/mcp/microsoft/oauth/callback", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "paddle-signature": "ts=1;h1=00" },
-      body,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "", state: started.payload.state }),
     });
-    if (invalid.response.status !== 401) throw new Error(`invalid signature should be rejected, got ${invalid.response.status}`);
+    if (callback.response.status !== 400) throw new Error(`empty callback should fail closed, got ${callback.response.status}`);
+    return { configured: started.payload.configured, callbackStatus: callback.response.status };
+  });
 
-    const valid = await request("/webhooks/paddle", {
+  await check("payment webhook rejects invalid signature and issues license on valid signature", "legacy", async () => {
+    const body = JSON.stringify({ eventType: "order_created", licenseKey: "CLWD-LEMON-PROD1-SMOKE-00001", plan: "yearly", machineFingerprintHash });
+    const invalid = await request("/webhooks/lemon-squeezy", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "paddle-signature": signPaddlePayload(body) },
+      headers: { "Content-Type": "application/json", "x-signature": "00" },
       body,
     });
-    if (!valid.response.ok) throw new Error(`valid signature rejected: ${valid.response.status}`);
-    if (valid.payload.license?.status !== "active") throw new Error("Paddle event did not activate license");
+    if (invalid.response.status !== 401) throw new Error(`invalid payment webhook signature should be rejected, got ${invalid.response.status}`);
+
+    const valid = await request("/webhooks/lemon-squeezy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-signature": signLemonSqueezyPayload(body) },
+      body,
+    });
+    if (!valid.response.ok) throw new Error(`valid payment webhook signature rejected: ${valid.response.status}`);
+    if (valid.payload.license?.status !== "active") throw new Error("payment webhook event did not issue active license");
+    if (!valid.payload.license?.licenseFile) throw new Error("payment webhook event did not issue offline license file");
     return { invalidStatus: invalid.response.status, validStatus: valid.response.status, licenseStatus: valid.payload.license?.status };
   });
 
-  await check("Keygen offline license file validates and tamper fails closed", async () => {
+  await check("offline license file validates and tamper fails closed", "legacy", async () => {
     const licenseFile = createSignedKeygenLicenseFile({
       id: "lic_prod_smoke",
       plan: "pro-yearly",
@@ -212,7 +233,7 @@ try {
     };
   });
 
-  await check("SSO production callback is scaffolded fail-closed", async () => {
+  await check("SSO production callback is scaffolded fail-closed", "legacy", async () => {
     const providers = await request("/auth/sso/providers");
     if (!providers.response.ok) throw new Error("SSO providers unavailable");
     const providerIds = providers.payload.providers.map((item) => item.id);
@@ -234,9 +255,9 @@ try {
     return { providerIds, finishFaultCode: finished.payload.faultCode };
   });
 
-  await check("production verification report does not contain secrets", async () => {
+  await check("production verification report does not contain secrets", "mixed", async () => {
     const serialized = redact({ checks });
-    if (serialized.includes(paddleWebhookSecret) || serialized.includes(keygenApiToken)) {
+    if (serialized.includes(lemonSqueezyWebhookSecret) || serialized.includes(keygenApiToken)) {
       throw new Error("report redaction failed");
     }
     return { redacted: true };

@@ -78,7 +78,7 @@ function attachedClawDeskMounts() {
   const lines = result.stdout.split("\n");
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    if (!/ClawDesk|OpenClaw|New project/.test(line)) continue;
+    if (!/ClawDesk|OpenClaw/.test(line)) continue;
 
     for (let nextIndex = index; nextIndex < Math.min(index + 40, lines.length); nextIndex += 1) {
       const match = lines[nextIndex].match(/(\/Volumes\/\S+)/);

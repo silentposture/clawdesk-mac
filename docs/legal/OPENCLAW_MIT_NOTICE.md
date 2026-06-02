@@ -3,11 +3,13 @@
 版本：0.1.0
 最後更新：2026-05-13
 
-ClawDesk 定位為 OpenClaw-compatible、local-first 桌面 AI Agent。ClawDesk 不主張擁有上游 OpenClaw 專案、商標、作者名稱或其原始碼著作權。
+ClawDesk 由 Alisonsoftware 開發，定位為 OpenClaw-compatible、local-first 桌面 AI Agent。ClawDesk 不主張擁有上游 OpenClaw 專案、商標、作者名稱或其原始碼著作權。
+
+Alisonsoftware 是個人開發者顯示名稱，非公司、法人、合夥或代理商名稱。正式商業發行、App Store / Marketplace 上架或企業採購時，若銷售渠道或當地法律要求 trader / seller / developer contact information，應另行揭露必要的真實聯絡資訊。
 
 ## ClawDesk 與 OpenClaw 的關係
 
-- ClawDesk 目前 MVP 以 mock Gateway、Tauri、React、TypeScript 與 Rust 建立桌面端產品骨架。
+- ClawDesk 目前 MVP 由 Alisonsoftware 以 mock Gateway、Tauri、React、TypeScript 與 Rust 建立桌面端產品骨架。
 - 若未實際包含上游 OpenClaw 原始碼，ClawDesk 僅作相容性與產品定位聲明。
 - 若未來複製、改作、編譯、重製或散布任何 OpenClaw MIT 授權原始碼，必須保留上游專案隨附的 copyright notice、MIT permission notice、LICENSE 與 NOTICE。
 - 上游 OpenClaw 的著作權仍歸原權利人所有；ClawDesk 自有 GUI、授權、記憶、Agent、工作流、診斷與商業功能採 ClawDesk 商業授權。

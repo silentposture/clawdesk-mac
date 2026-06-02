@@ -5,6 +5,9 @@ describe("version summary", () => {
   it("uses deterministic local defaults", () => {
     expect(buildVersionSummary({})).toEqual({
       productName: "ClawDesk",
+      developer: "Alisonsoftware",
+      developerType: "個人開發者",
+      contactEmail: "huangkuoling@gmail.com",
       compatibility: "OpenClaw-compatible desktop agent",
       version: "0.1.0",
       buildId: "dev-local",

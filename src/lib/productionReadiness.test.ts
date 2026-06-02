@@ -6,7 +6,7 @@ describe("production readiness view", () => {
     const view = buildProductionReadinessView();
 
     expect(view.summary.overall).toBe("mock-candidate-ready");
-    expect(view.matrix.find((item) => item.id === "paddle")?.status).toBe("warning");
+    expect(view.matrix.find((item) => item.id === "lemon-squeezy")?.status).toBe("warning");
   });
 
   it("marks provider env groups ready from backend health without exposing values", () => {
@@ -17,8 +17,9 @@ describe("production readiness view", () => {
         backend: {
           productionEnv: {
             required: [
-              { name: "PADDLE_API_KEY", present: true },
-              { name: "PADDLE_WEBHOOK_SECRET", present: true },
+              { name: "LEMON_SQUEEZY_API_KEY", present: true },
+              { name: "LEMON_SQUEEZY_WEBHOOK_SECRET", present: true },
+              { name: "LEMON_SQUEEZY_STORE_ID", present: true },
               { name: "KEYGEN_ACCOUNT_ID", present: true },
               { name: "KEYGEN_PRODUCT_ID", present: true },
               { name: "KEYGEN_API_TOKEN", present: true },
@@ -34,7 +35,7 @@ describe("production readiness view", () => {
     );
 
     expect(view.matrix.find((item) => item.id === "production-gateway")?.status).toBe("ready");
-    expect(view.matrix.find((item) => item.id === "paddle")?.status).toBe("ready");
+    expect(view.matrix.find((item) => item.id === "lemon-squeezy")?.status).toBe("ready");
     expect(view.matrix.find((item) => item.id === "keygen")?.status).toBe("ready");
     expect(view.matrix.find((item) => item.id === "sso")?.status).toBe("warning");
     expect(view.missingProductionEnv).toEqual(["CLAWDESK_SSO_ISSUER_URL", "CLAWDESK_SSO_CLIENT_ID"]);

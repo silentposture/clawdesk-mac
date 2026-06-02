@@ -1,5 +1,8 @@
 export interface VersionSummary {
   productName: string;
+  developer: string;
+  developerType: string;
+  contactEmail: string;
   compatibility: string;
   version: string;
   buildId: string;
@@ -23,6 +26,9 @@ function readBuildEnv(): VersionEnv {
 export function buildVersionSummary(env: VersionEnv = readBuildEnv()): VersionSummary {
   return {
     productName: "ClawDesk",
+    developer: "Alisonsoftware",
+    developerType: "個人開發者",
+    contactEmail: "huangkuoling@gmail.com",
     compatibility: "OpenClaw-compatible desktop agent",
     version: env.VITE_CLAWDESK_VERSION?.trim() || DEFAULT_VERSION,
     buildId: env.VITE_CLAWDESK_BUILD_ID?.trim() || DEFAULT_BUILD_ID,

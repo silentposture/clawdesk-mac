@@ -6,6 +6,37 @@ const cwd = process.cwd();
 const reportDir = path.join(cwd, "artifacts", "qa-loop");
 const guardedPorts = [18890, 18790, 5173, 19110, 19120, 19130, 19140];
 
+function commandInvocation(command, args) {
+  if (process.platform !== "win32") return { command, args };
+  if (command.endsWith(".exe")) return { command, args };
+  if (command === "cargo" || command === "node") return { command: `${command}.exe`, args };
+  const cmdCommand = command.endsWith(".cmd") ? command : `${command}.cmd`;
+  return { command: "cmd.exe", args: ["/d", "/s", "/c", cmdCommand, ...args] };
+}
+
+function listPortPids(port) {
+  const finder = process.platform === "win32"
+    ? spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-Command",
+          `Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique`,
+        ],
+        { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], shell: false },
+      )
+    : spawnSync("bash", ["-lc", `lsof -ti tcp:${port}`], {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+
+  return (finder.stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -18,12 +49,14 @@ function runStep(step) {
   const startedAt = nowIso();
   const startedMs = Date.now();
   const command = `${step.cmd} ${step.args.join(" ")}`;
+  const invocation = commandInvocation(step.cmd, step.args);
 
   return new Promise((resolve) => {
-    const child = spawn(step.cmd, step.args, {
+    const child = spawn(invocation.command, invocation.args, {
       cwd,
       env: { ...process.env, ...(step.env || {}) },
       stdio: ["ignore", "pipe", "pipe"],
+      shell: false,
     });
     let stdout = "";
     let stderr = "";
@@ -76,20 +109,20 @@ function runStep(step) {
 
 function cleanupPorts() {
   for (const port of guardedPorts) {
-    const finder = spawnSync("bash", ["-lc", `lsof -ti tcp:${port}`], {
-      cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    const pids = (finder.stdout || "")
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const pids = listPortPids(port);
     for (const pid of pids) {
-      spawnSync("kill", ["-9", pid], {
-        cwd,
-        stdio: ["ignore", "ignore", "ignore"],
-      });
+      if (process.platform === "win32") {
+        spawnSync("powershell.exe", ["-NoProfile", "-Command", `Stop-Process -Id ${Number(pid)} -Force -ErrorAction SilentlyContinue`], {
+          cwd,
+          stdio: ["ignore", "ignore", "ignore"],
+          shell: false,
+        });
+      } else {
+        spawnSync("kill", ["-9", pid], {
+          cwd,
+          stdio: ["ignore", "ignore", "ignore"],
+        });
+      }
     }
   }
 }
@@ -114,6 +147,14 @@ function classifyIssue(stepResult) {
           "此失敗符合預期，屬於外部前置條件未就緒（production secrets、Apple signing/notarization、Developer ID）。",
       };
     }
+  }
+  if (stepResult.name === "sign-macos-notarize" && stepResult.output.includes("BLOCKED:")) {
+    return {
+      severity: "Major",
+      category: "ExternalDependency",
+      title: "macOS notarize/公證檢查缺少外部前置條件",
+      detail: "環境缺少 Apple signing/notarization 憑證、DMG 或工具，僅屬外部阻塞。",
+    };
   }
 
   return {
@@ -201,6 +242,7 @@ async function main() {
     { name: "smoke-gui-prod", cmd: "npm", args: ["run", "smoke:gui:prod"], timeoutMs: 300000, cleanupBefore: true, cleanupAfter: true },
     { name: "smoke-tauri-app", cmd: "node", args: ["scripts/smoke-tauri-app.mjs", "--no-build"], timeoutMs: 360000, cleanupBefore: true, cleanupAfter: true },
     { name: "smoke-dmg", cmd: "node", args: ["scripts/smoke-dmg.mjs", "--no-build"], timeoutMs: 300000, cleanupBefore: true, cleanupAfter: true },
+    { name: "sign-macos-notarize", cmd: "npm", args: ["run", "sign:mac:notarize"], timeoutMs: 900000, cleanupBefore: true, cleanupAfter: true },
     { name: "cargo-test", cmd: "cargo", args: ["test", "--manifest-path", "src-tauri/Cargo.toml"], timeoutMs: 300000 },
     { name: "release-preflight-production", cmd: "npm", args: ["run", "release:preflight:production"], timeoutMs: 120000 },
     { name: "release-preflight-strict", cmd: "npm", args: ["run", "release:preflight:production:strict"], timeoutMs: 120000 },

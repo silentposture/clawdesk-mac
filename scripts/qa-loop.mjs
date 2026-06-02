@@ -149,14 +149,14 @@ function buildCommandPlan(options) {
       cmd: "cargo",
       args: ["test", "--manifest-path", "src-tauri/Cargo.toml"],
       timeoutMs: 180000,
-      enabled: !options.skipCargoTest,
+      enabled: !options.skipCargoTest && process.platform !== "win32",
     },
     {
       name: "tauri-app-smoke",
       cmd: "npm",
       args: ["run", "tauri:app-smoke"],
       timeoutMs: 300000,
-      enabled: options.includeTauriAppSmoke,
+      enabled: options.includeTauriAppSmoke && process.platform !== "win32",
       cleanupPorts: true,
     },
     {
@@ -164,7 +164,7 @@ function buildCommandPlan(options) {
       cmd: "npm",
       args: ["run", "smoke:dmg"],
       timeoutMs: 420000,
-      enabled: options.includeDmgSmoke,
+      enabled: options.includeDmgSmoke && process.platform === "darwin",
       cleanupPorts: true,
     },
   ].filter((command) => command.enabled ?? true);
@@ -172,24 +172,55 @@ function buildCommandPlan(options) {
 
 const guardedPorts = [18890, 18790, 5173, 19120, 19130, 19140];
 
+function commandInvocation(command, args) {
+  if (process.platform !== "win32") return { command, args };
+  if (command.endsWith(".exe")) return { command, args };
+  if (command === "cargo" || command === "node") return { command: `${command}.exe`, args };
+  const cmdCommand = command.endsWith(".cmd") ? command : `${command}.cmd`;
+  return { command: "cmd.exe", args: ["/d", "/s", "/c", cmdCommand, ...args] };
+}
+
+function listPortPids(port) {
+  const finder = process.platform === "win32"
+    ? spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-Command",
+          `Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique`,
+        ],
+        { cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], shell: false },
+      )
+    : spawnSync("bash", ["-lc", `lsof -ti tcp:${port}`], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+
+  return (finder.stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 function cleanupPorts() {
   for (const port of guardedPorts) {
-    const finder = spawnSync("bash", ["-lc", `lsof -ti tcp:${port}`], {
-      cwd: process.cwd(),
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    const pids = (finder.stdout || "")
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const pids = listPortPids(port);
     if (pids.length === 0) continue;
 
     for (const pid of pids) {
-      spawnSync("kill", ["-9", pid], {
-        cwd: process.cwd(),
-        stdio: ["ignore", "ignore", "ignore"],
-      });
+      if (process.platform === "win32") {
+        spawnSync("powershell.exe", ["-NoProfile", "-Command", `Stop-Process -Id ${Number(pid)} -Force -ErrorAction SilentlyContinue`], {
+          cwd: process.cwd(),
+          stdio: ["ignore", "ignore", "ignore"],
+          shell: false,
+        });
+      } else {
+        spawnSync("kill", ["-9", pid], {
+          cwd: process.cwd(),
+          stdio: ["ignore", "ignore", "ignore"],
+        });
+      }
     }
   }
 }
@@ -210,11 +241,13 @@ async function runOne(command, options) {
     }
     start = new Date().toISOString();
     startedMs = Date.now();
-    result = spawnSync(command.cmd, command.args, {
+    const invocation = commandInvocation(command.cmd, command.args);
+    result = spawnSync(invocation.command, invocation.args, {
       cwd: process.cwd(),
       encoding: "utf8",
       stdio: "inherit",
       timeout: command.timeoutMs,
+      shell: false,
     });
 
     if (result.status === 0) break;

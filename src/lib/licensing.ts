@@ -1,15 +1,16 @@
-export type PaymentProvider = "paddle";
-export type LicenseProvider = "keygen";
-export type FutureCommercialProvider = "lemon-squeezy-compatible";
+export type PaymentProvider = "lemon-squeezy" | "naviaworks";
+export type LicenseProvider = "lemon-license" | "universal-server";
+
+export type CanonicalPlanKey =
+  | "clawdesk.free"
+  | "clawdesk.subscription.monthly.1dev"
+  | "clawdesk.subscription.yearly.2dev"
+  | "clawdesk.lifetime_updates_1y_1dev"
+  | "clawdesk.lifetime_updates_1y_2dev";
 
 export type LicensePlan =
-  | "free-trial"
-  | "monthly"
-  | "yearly"
-  | "lifetime"
-  | "early-bird"
-  | "update-maintenance"
   | "hobby"
+  | "trial"
   | "pro-monthly"
   | "pro-yearly"
   | "lifetime-local"
@@ -23,25 +24,35 @@ export type LicenseStatusType =
   | "active"
   | "past-due"
   | "canceled"
+  | "expired"
   | "offline-grace"
+  | "safe-mode"
   | "tampered"
   | "revoked";
+
+export type EntitlementStatus = "trial" | "licensed" | "safe-mode" | "trial-expired";
+
+export interface BetaEntitlement {
+  plan: LicensePlan;
+  status: EntitlementStatus;
+  productKey?: string;
+  planKey?: CanonicalPlanKey;
+  expiresAt?: string;
+  updatesUntilUtc?: string;
+  graceUntil?: string;
+  features: string[];
+  licenseKeyHash?: string;
+  machineHash?: string;
+  lastVerifiedAt?: string;
+  lastValidationCode: string;
+}
 
 export interface PricingPlan {
   id: LicensePlan;
   name: string;
   priceUsd: number;
-  cadence: "trial" | "free" | "monthly" | "yearly" | "one-time" | "maintenance" | "contract";
+  cadence: "free" | "monthly" | "yearly" | "one-time" | "contract";
   description: string;
-}
-
-export interface CommercialPlan extends PricingPlan {
-  paymentProvider: PaymentProvider;
-  licenseProvider: LicenseProvider;
-  futureProvider: FutureCommercialProvider;
-  entitlement: string[];
-  supportUpdatesMonths?: number;
-  positioning: "desktop-ai-work-platform";
 }
 
 export interface EncryptedLicenseKey {
@@ -79,195 +90,194 @@ export interface LicenseTamperEvent {
   reason: string;
   detectedAt: string;
   localAction: "downgrade-to-hobby" | "clear-offline-ticket";
-  serverAction: "report-to-keygen" | "manual-review";
+  serverAction: "report-to-lemon" | "manual-review";
   faultCode: string;
 }
 
 export interface LicenseStatus {
   paymentProvider: PaymentProvider;
   licenseProvider: LicenseProvider;
+  commerceProvider: PaymentProvider;
+  entitlementAuthority: LicenseProvider;
+  productKey: string;
+  canonicalPlanKey: CanonicalPlanKey;
   plan: LicensePlan;
   status: LicenseStatusType;
   seats: number;
   supportUpdatesUntil: string;
+  updatesUntilUtc: string;
   eligibleLatestVersion: string;
   offlineGraceUntil?: string;
+  graceUntilUtc?: string;
   features: string[];
   deviceLimit: number;
+  activeDeviceCount: number;
   machines: MachineActivation[];
   lastValidationCode?: string;
+  entitlement?: BetaEntitlement;
 }
 
-export const commercialPlans: CommercialPlan[] = [
-  {
-    id: "free-trial",
-    name: "Free Trial",
-    priceUsd: 0,
-    cadence: "trial",
-    description: "本機安全沙盒、手動授權與基本桌面工作流試用。",
-    paymentProvider: "paddle",
-    licenseProvider: "keygen",
-    futureProvider: "lemon-squeezy-compatible",
-    entitlement: ["safe-mode", "local-chat", "manual-permissions"],
-    positioning: "desktop-ai-work-platform",
-  },
-  {
-    id: "monthly",
-    name: "Monthly",
-    priceUsd: 9,
-    cadence: "monthly",
-    description: "桌面 AI 工作平台月繳方案；不販售模型算力，模型由使用者帳號或 API 供應。",
-    paymentProvider: "paddle",
-    licenseProvider: "keygen",
-    futureProvider: "lemon-squeezy-compatible",
-    entitlement: ["pro-agent", "mcp-connectors", "workflow-builder", "local-memory"],
-    positioning: "desktop-ai-work-platform",
-  },
-  {
-    id: "yearly",
-    name: "Yearly",
-    priceUsd: 79,
-    cadence: "yearly",
-    description: "桌面 AI 工作平台年繳方案，含支援更新資格。",
-    paymentProvider: "paddle",
-    licenseProvider: "keygen",
-    futureProvider: "lemon-squeezy-compatible",
-    entitlement: ["pro-agent", "mcp-connectors", "workflow-builder", "local-memory", "priority-updates"],
-    positioning: "desktop-ai-work-platform",
-  },
-  {
-    id: "lifetime",
-    name: "Lifetime",
-    priceUsd: 99,
-    cadence: "one-time",
-    description: "永久本機功能，含 12 個月支援更新；到期後仍可用最後符合資格版本。",
-    paymentProvider: "paddle",
-    licenseProvider: "keygen",
-    futureProvider: "lemon-squeezy-compatible",
-    entitlement: ["pro-agent", "mcp-connectors", "workflow-builder", "local-memory", "offline-grace"],
-    supportUpdatesMonths: 12,
-    positioning: "desktop-ai-work-platform",
-  },
-  {
-    id: "early-bird",
-    name: "Early Bird",
-    priceUsd: 69,
-    cadence: "one-time",
-    description: "早鳥一次買斷名額，適合 side-project 商業 Beta 內測。",
-    paymentProvider: "paddle",
-    licenseProvider: "keygen",
-    futureProvider: "lemon-squeezy-compatible",
-    entitlement: ["pro-agent", "mcp-connectors", "workflow-builder", "local-memory", "beta-feedback"],
-    supportUpdatesMonths: 12,
-    positioning: "desktop-ai-work-platform",
-  },
-  {
-    id: "update-maintenance",
-    name: "Update Maintenance",
-    priceUsd: 29,
-    cadence: "maintenance",
-    description: "買斷版支援更新續費，延長可安裝新版本資格一年。",
-    paymentProvider: "paddle",
-    licenseProvider: "keygen",
-    futureProvider: "lemon-squeezy-compatible",
-    entitlement: ["priority-updates", "support-updates"],
-    supportUpdatesMonths: 12,
-    positioning: "desktop-ai-work-platform",
-  },
+export const pricingPlans: PricingPlan[] = [
+  { id: "trial", name: "Free Trial", priceUsd: 0, cadence: "free", description: "7 天或 30 次本機試用，不需信用卡。" },
+  { id: "pro-yearly", name: "Pro Yearly", priceUsd: 79, cadence: "yearly", description: "個人完整桌面 Agent，年繳方案。" },
+  { id: "lifetime-local", name: "Lifetime", priceUsd: 99, cadence: "one-time", description: "永久本機 Pro，含 12 個月支援更新。" },
 ];
 
-export const pricingPlans: PricingPlan[] = commercialPlans;
+export const betaPricingPlans: PricingPlan[] = [
+  { id: "trial", name: "Free Trial", priceUsd: 0, cadence: "free", description: "7 天或 30 次本機啟動/對話測試。" },
+  { id: "pro-yearly", name: "Pro Yearly", priceUsd: 79, cadence: "yearly", description: "Windows direct-download Beta 主力方案。" },
+  { id: "lifetime-local", name: "Lifetime", priceUsd: 99, cadence: "one-time", description: "買斷含 12 個月更新維護。" },
+];
 
-export function normalizeKeygenKey(input: string): string {
-  return input.trim().toUpperCase().replace(/\s+/g, "-");
+export function normalizeLemonLicenseKey(input: string): string {
+  return input.trim().replace(/\s+/g, "-");
 }
 
-export function isMockKeygenKey(input: string): boolean {
-  return /^CLWD-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/.test(normalizeKeygenKey(input));
+export function isMockLemonLicenseKey(input: string): boolean {
+  return /^CLWD-BETA-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(normalizeLemonLicenseKey(input).toUpperCase());
+}
+
+export function hashLicenseKeyForStorage(input: string): string {
+  const normalized = normalizeLemonLicenseKey(input).toUpperCase();
+  let hash = 2166136261;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash ^= normalized.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `lk_${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
 export function createMockMachineFingerprint(now = new Date().toISOString()): MachineFingerprint {
   return {
-    fingerprintHash: "mfp_salted_mock_mac_m4_a9d2",
-    hardwareSources: ["hardware-uuid", "platform-serial", "cpu-brand", "cpu-architecture"],
-    platform: "macOS",
+    fingerprintHash: "mfp_salted_mock_win_x64_a9d2",
+    hardwareSources: ["machine-guid", "baseboard-serial", "cpu-brand", "cpu-architecture"],
+    platform: "Windows",
     confidence: 0.86,
     createdAt: now,
   };
 }
 
-export function createMockLicensePayload(encodedKey: string, now = new Date().toISOString()): EncryptedLicenseKey {
-  const normalized = normalizeKeygenKey(encodedKey);
-  const plan: LicensePlan = normalized.includes("LIFE") ? "lifetime" : normalized.includes("TEAM") ? "team" : "yearly";
-  const supportUpdatesUntil = "2027-05-12";
+export function createTrialEntitlement(now = new Date().toISOString(), launchCount = 0): BetaEntitlement {
+  const expiresAt = new Date(Date.parse(now) + 1000 * 60 * 60 * 24 * 7).toISOString();
   return {
-    keyId: `kg_${normalized.slice(5, 10).toLowerCase()}`,
-    encodedKey: normalized,
-    signatureStatus: isMockKeygenKey(normalized) ? "valid" : "invalid",
-    payloadHash: `sha256:${normalized.slice(-5).toLowerCase()}-${plan}`,
-    plan,
-    status: normalized.includes("REVOK") ? "revoked" : isMockKeygenKey(normalized) ? "active" : "tampered",
-    supportUpdatesUntil,
-    expiresAt: plan === "lifetime" ? undefined : "2027-05-12",
-    deviceLimit: plan === "team" ? 10 : 3,
+    plan: "trial",
+    status: launchCount >= 30 ? "trial-expired" : "trial",
+    productKey: "clawdesk",
+    planKey: "clawdesk.free",
+    expiresAt,
+    updatesUntilUtc: expiresAt,
+    features: ["local-chat", "provider-setup", "diagnostics-export"],
+    lastVerifiedAt: now,
+    lastValidationCode: launchCount >= 30 ? "TRIAL_LAUNCH_LIMIT" : "TRIAL_READY",
   };
 }
 
-export function activateMockLicense(
+export function createLemonLicensedEntitlement(
+  licenseKey: string,
+  fingerprint: MachineFingerprint,
+  now = new Date().toISOString(),
+): BetaEntitlement {
+  const normalized = normalizeLemonLicenseKey(licenseKey).toUpperCase();
+  const expiresAt = normalized.includes("LIFE")
+    ? undefined
+    : new Date(Date.parse(now) + 1000 * 60 * 60 * 24 * 365).toISOString();
+  return {
+    plan: normalized.includes("LIFE") ? "lifetime-local" : "pro-yearly",
+    status: "licensed",
+    productKey: "clawdesk",
+    planKey: normalized.includes("LIFE") ? "clawdesk.lifetime_updates_1y_1dev" : "clawdesk.subscription.yearly.2dev",
+    expiresAt,
+    updatesUntilUtc: expiresAt,
+    graceUntil: new Date(Date.parse(now) + 1000 * 60 * 60 * 24 * 7).toISOString(),
+    features: ["pro-agent", "local-memory", "workflow-builder", "mcp-connectors", "diagnostics-export", "updates"],
+    licenseKeyHash: hashLicenseKeyForStorage(normalized),
+    machineHash: fingerprint.fingerprintHash,
+    lastVerifiedAt: now,
+    lastValidationCode: isMockLemonLicenseKey(normalized) ? "LEMON_VALID" : "LEMON_UNVERIFIED_MOCK",
+  };
+}
+
+export function downgradeEntitlementToSafeMode(reason: string, now = new Date().toISOString()): BetaEntitlement {
+  return {
+    plan: "hobby",
+    status: reason === "trial-expired" ? "trial-expired" : "safe-mode",
+    productKey: "clawdesk",
+    planKey: "clawdesk.free",
+    updatesUntilUtc: now,
+    features: ["diagnostics-export", "data-export", "manual-settings"],
+    lastVerifiedAt: now,
+    lastValidationCode: reason,
+  };
+}
+
+export function activateMockLemonLicense(
   encodedKey: string,
   fingerprint: MachineFingerprint,
-  existingMachines: MachineActivation[] = [],
   now = new Date().toISOString(),
 ): LicenseStatus {
-  const payload = createMockLicensePayload(encodedKey, now);
-
-  if (payload.signatureStatus !== "valid" || payload.status === "revoked") {
-    return createFreeStatus(payload.status === "revoked" ? "KEYGEN_REVOKED" : "KEYGEN_INVALID_SIGNATURE");
+  if (!isMockLemonLicenseKey(encodedKey)) {
+    return {
+      ...createFreeStatus("LEMON_INVALID_LICENSE_KEY"),
+      paymentProvider: "lemon-squeezy",
+      licenseProvider: "lemon-license",
+      commerceProvider: "lemon-squeezy",
+      entitlementAuthority: "lemon-license",
+      status: "safe-mode",
+      entitlement: downgradeEntitlementToSafeMode("LEMON_INVALID_LICENSE_KEY", now),
+    };
   }
 
-  const activeMachines = existingMachines.filter((machine) => !machine.revokedAt);
-  const alreadyActive = activeMachines.some((machine) => machine.fingerprintHash === fingerprint.fingerprintHash);
-  if (!alreadyActive && activeMachines.length >= payload.deviceLimit) {
-    return createFreeStatus("KEYGEN_MACHINE_LIMIT_EXCEEDED");
-  }
-
+  const entitlement = createLemonLicensedEntitlement(encodedKey, fingerprint, now);
   const machine: MachineActivation = {
-    machineId: `mac_${fingerprint.fingerprintHash.slice(-8)}`,
+    machineId: `win_${fingerprint.fingerprintHash.slice(-8)}`,
     fingerprintHash: fingerprint.fingerprintHash,
-    deviceName: "Mac Apple Silicon",
-    platform: "macOS arm64",
+    deviceName: "Windows 11 x64 direct-download beta",
+    platform: "Windows x64 MSVC",
     activatedAt: now,
     lastSeenAt: now,
   };
-
-  const machines = alreadyActive ? existingMachines : [...existingMachines, machine];
   return {
-    paymentProvider: "paddle",
-    licenseProvider: "keygen",
-    plan: payload.plan,
+    paymentProvider: "lemon-squeezy",
+    licenseProvider: "lemon-license",
+    commerceProvider: "lemon-squeezy",
+    entitlementAuthority: "lemon-license",
+    productKey: "clawdesk",
+    canonicalPlanKey: entitlement.planKey ?? "clawdesk.subscription.yearly.2dev",
+    plan: entitlement.plan,
     status: "active",
-    seats: payload.plan === "team" ? 10 : 1,
-    supportUpdatesUntil: payload.supportUpdatesUntil,
-    eligibleLatestVersion: "1.4.0",
-    offlineGraceUntil: "2026-06-11",
-    features: ["pro-agent", "local-memory", "workflow-builder", "mcp-connectors", "diagnostics"],
-    deviceLimit: payload.deviceLimit,
-    machines,
-    lastValidationCode: "KEYGEN_VALID",
+    seats: 1,
+    supportUpdatesUntil: entitlement.expiresAt ?? "2027-05-14",
+    updatesUntilUtc: entitlement.updatesUntilUtc ?? entitlement.expiresAt ?? "2027-05-14",
+    eligibleLatestVersion: "0.1.0-beta",
+    offlineGraceUntil: entitlement.graceUntil,
+    graceUntilUtc: entitlement.graceUntil,
+    features: entitlement.features,
+    deviceLimit: 2,
+    activeDeviceCount: 1,
+    machines: [machine],
+    lastValidationCode: entitlement.lastValidationCode,
+    entitlement,
   };
 }
 
 export function createFreeStatus(validationCode = "HOBBY_MODE"): LicenseStatus {
   return {
-    paymentProvider: "paddle",
-    licenseProvider: "keygen",
-    plan: "free-trial",
+    paymentProvider: "lemon-squeezy",
+    licenseProvider: "lemon-license",
+    commerceProvider: "lemon-squeezy",
+    entitlementAuthority: "lemon-license",
+    productKey: "clawdesk",
+    canonicalPlanKey: "clawdesk.free",
+    plan: "hobby",
     status: validationCode.includes("TAMPER") ? "tampered" : validationCode.includes("REVOK") ? "revoked" : "free",
     seats: 1,
     supportUpdatesUntil: "2026-05-12",
+    updatesUntilUtc: "2026-05-12",
     eligibleLatestVersion: "1.0.0",
+    graceUntilUtc: undefined,
     features: ["safe-mode", "local-chat", "manual-permissions"],
     deviceLimit: 1,
+    activeDeviceCount: 0,
     machines: [],
     lastValidationCode: validationCode,
   };
@@ -283,7 +293,7 @@ export function detectLicenseTamper(original: EncryptedLicenseKey, candidate: En
     reason: `受保護授權欄位被修改：${changedField}`,
     detectedAt: now,
     localAction: "downgrade-to-hobby",
-    serverAction: "report-to-keygen",
+    serverAction: "report-to-lemon",
     faultCode: "CLWD-LIC-1001",
   };
 }

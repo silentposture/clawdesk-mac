@@ -41,9 +41,10 @@ export interface ProductionReadinessView {
   missingProductionEnv: string[];
 }
 
-const PADDLE_ENV = ["PADDLE_API_KEY", "PADDLE_WEBHOOK_SECRET"];
+const LEMON_SQUEEZY_ENV = ["LEMON_SQUEEZY_API_KEY", "LEMON_SQUEEZY_WEBHOOK_SECRET", "LEMON_SQUEEZY_STORE_ID"];
 const KEYGEN_ENV = ["KEYGEN_ACCOUNT_ID", "KEYGEN_PRODUCT_ID", "KEYGEN_API_TOKEN", "KEYGEN_SIGNING_PUBLIC_KEY"];
 const SSO_ENV = ["CLAWDESK_SSO_ISSUER_URL", "CLAWDESK_SSO_CLIENT_ID"];
+const MICROSOFT_GRAPH_ENV = ["MICROSOFT_GRAPH_TENANT_ID", "MICROSOFT_GRAPH_CLIENT_ID", "MICROSOFT_GRAPH_CLIENT_SECRET", "MICROSOFT_GRAPH_REDIRECT_URI"];
 
 function requiredEnv(health?: ProductionHealthPayload): EnvPresence[] {
   return (
@@ -69,9 +70,10 @@ export function buildProductionReadinessView(
   const input: ReleaseReadinessInput = {
     ...baseInput,
     hasProductionGateway,
-    hasPaddleCredentials: envGroupPresent(env, PADDLE_ENV) ?? baseInput.hasPaddleCredentials,
+    hasLemonSqueezyCredentials: envGroupPresent(env, LEMON_SQUEEZY_ENV) ?? baseInput.hasLemonSqueezyCredentials,
     hasKeygenCredentials: envGroupPresent(env, KEYGEN_ENV) ?? baseInput.hasKeygenCredentials,
     hasSsoCredentials: envGroupPresent(env, SSO_ENV) ?? baseInput.hasSsoCredentials,
+    hasMicrosoftGraphCredentials: envGroupPresent(env, MICROSOFT_GRAPH_ENV) ?? baseInput.hasMicrosoftGraphCredentials,
   };
   const matrix = buildReleaseReadinessMatrix(input);
   const missingProductionEnv =

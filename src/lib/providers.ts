@@ -6,20 +6,41 @@ export type ProviderId =
   | "openai"
   | "openai-api"
   | "anthropic"
+  | "anthropic-vertex"
+  | "alibaba"
+  | "arcee"
+  | "bedrock"
+  | "bedrock-mantle"
+  | "chutes"
+  | "claude-max-api-proxy"
+  | "azure-speech"
   | "google"
   | "google-gemini"
   | "google-vertex"
   | "google-gemini-cli"
   | "openrouter"
+  | "perplexity"
   | "moonshot"
   | "byteplus"
   | "byteplus-plan"
   | "cloudflare-ai-gateway"
+  | "comfy"
+  | "deepgram"
   | "deepseek"
   | "deepinfra"
+  | "ds4"
+  | "elevenlabs"
+  | "fal"
+  | "fireworks"
+  | "gradium"
   | "github-copilot"
+  | "glm"
   | "xai"
   | "groq"
+  | "inferrs"
+  | "index"
+  | "inworld"
+  | "litellm"
   | "mistral"
   | "azure-openai"
   | "minimax"
@@ -29,11 +50,13 @@ export type ProviderId =
   | "qwen"
   | "qwen-portal"
   | "cerebras"
+  | "microsoft-foundry"
   | "kimi"
   | "kilocode"
   | "opencode"
   | "opencode-go"
   | "runway"
+  | "senseaudio"
   | "stepfun"
   | "stepfun-plan"
   | "together"
@@ -42,8 +65,11 @@ export type ProviderId =
   | "volcengine-plan"
   | "xiaomi"
   | "zai"
+  | "synthetic"
+  | "tencent"
   | "vercel-ai-gateway"
   | "huggingface"
+  | "vydra"
   | "ollama"
   | "lmstudio"
   | "vllm"
@@ -78,6 +104,16 @@ export interface LlmProviderSpec {
   description: string;
 }
 
+export interface OpenAiAuthRoute {
+  id: "openai-api-key" | "openai-codex-oauth";
+  label: string;
+  provider: "openai" | "openai-codex";
+  modelRef: string;
+  auth: "api-key" | "oauth";
+  secretStorage: "api-key-profile" | "oauth-profile";
+  desktopPolicy: string;
+}
+
 export const llmProviderCatalog: LlmProviderSpec[] = [
   {
     id: "chatgpt-pro",
@@ -94,10 +130,10 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     shortName: "OpenAI Codex",
     displayName: "OpenAI Codex",
     authMode: "oauth",
-    modelPlaceholder: "gpt-5.3-codex",
-    modelDefault: "gpt-5.3-codex",
+    modelPlaceholder: "gpt-5.5",
+    modelDefault: "gpt-5.5",
     accountPlaceholder: "OpenAI Codex 帳號 Email",
-    description: "OpenAI Codex OAuth（OpenClaw 也在使用的供應商方式）。",
+    description: "OpenAI Codex / ChatGPT OAuth。依 OpenClaw 規則，登入 profile 可供 canonical openai/gpt-* route 使用。",
   },
   {
     id: "openai",
@@ -131,6 +167,76 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     keyPlaceholder: "sk-ant-...",
     keyPrefixes: ["sk-ant-", "sk-ant-api03-"],
     description: "Anthropic Claude 系列模型。",
+  },
+  {
+    id: "anthropic-vertex",
+    shortName: "Anthropic Vertex",
+    displayName: "Anthropic Vertex",
+    authMode: "api-key",
+    modelPlaceholder: "anthropic-vertex/claude-sonnet-4-5",
+    modelDefault: "anthropic-vertex/claude-sonnet-4-5",
+    keyPlaceholder: "GOOGLE_APPLICATION_CREDENTIALS / Vertex auth",
+    description: "OpenClaw provider docs: Anthropic Vertex provider。",
+  },
+  {
+    id: "alibaba",
+    shortName: "Alibaba",
+    displayName: "Alibaba Cloud",
+    authMode: "api-key",
+    modelPlaceholder: "alibaba/qwen-plus",
+    modelDefault: "alibaba/qwen-plus",
+    keyPlaceholder: "ALIBABA_API_KEY",
+    description: "OpenClaw provider docs: Alibaba / DashScope 類模型入口。",
+  },
+  {
+    id: "arcee",
+    shortName: "Arcee",
+    displayName: "Arcee",
+    authMode: "api-key",
+    modelPlaceholder: "arcee/default",
+    modelDefault: "arcee/default",
+    keyPlaceholder: "ARCEE_API_KEY",
+    description: "OpenClaw provider docs: Arcee model provider。",
+  },
+  {
+    id: "bedrock",
+    shortName: "Bedrock",
+    displayName: "AWS Bedrock",
+    authMode: "api-key",
+    modelPlaceholder: "bedrock/anthropic.claude-sonnet-4-5",
+    modelDefault: "bedrock/anthropic.claude-sonnet-4-5",
+    keyPlaceholder: "AWS credentials profile",
+    description: "OpenClaw provider docs: AWS Bedrock provider。",
+  },
+  {
+    id: "bedrock-mantle",
+    shortName: "Bedrock Mantle",
+    displayName: "Bedrock Mantle",
+    authMode: "api-key",
+    modelPlaceholder: "bedrock-mantle/default",
+    modelDefault: "bedrock-mantle/default",
+    keyPlaceholder: "AWS credentials profile",
+    description: "OpenClaw provider docs: Bedrock Mantle provider。",
+  },
+  {
+    id: "chutes",
+    shortName: "Chutes",
+    displayName: "Chutes",
+    authMode: "api-key",
+    modelPlaceholder: "chutes/default",
+    modelDefault: "chutes/default",
+    keyPlaceholder: "CHUTES_API_KEY",
+    description: "OpenClaw provider docs: Chutes model provider。",
+  },
+  {
+    id: "claude-max-api-proxy",
+    shortName: "Claude Max Proxy",
+    displayName: "Claude Max API Proxy",
+    authMode: "local-endpoint",
+    modelPlaceholder: "anthropic/claude-opus-4-6",
+    modelDefault: "anthropic/claude-opus-4-6",
+    endpointPlaceholder: "http://127.0.0.1:8082/v1",
+    description: "OpenClaw provider docs: Claude Max API proxy。",
   },
   {
     id: "google",
@@ -186,6 +292,17 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     description: "聚合多家模型供應商。",
   },
   {
+    id: "perplexity",
+    shortName: "Perplexity",
+    displayName: "Perplexity",
+    authMode: "api-key",
+    modelPlaceholder: "perplexity/sonar-pro",
+    modelDefault: "perplexity/sonar-pro",
+    keyPlaceholder: "PERPLEXITY_API_KEY",
+    keyPrefixes: ["pplx-", "sk-"],
+    description: "OpenClaw provider docs: Perplexity provider。",
+  },
+  {
     id: "byteplus",
     shortName: "BytePlus",
     displayName: "BytePlus",
@@ -218,6 +335,36 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     description: "Cloudflare AI Gateway OpenAI 相容轉發。",
   },
   {
+    id: "azure-speech",
+    shortName: "Azure Speech",
+    displayName: "Azure Speech",
+    authMode: "api-key",
+    modelPlaceholder: "azure-speech/default",
+    modelDefault: "azure-speech/default",
+    keyPlaceholder: "AZURE_SPEECH_KEY",
+    description: "OpenClaw provider docs: Azure Speech provider（語音能力，MVP 以 mock contract 呈現）。",
+  },
+  {
+    id: "comfy",
+    shortName: "ComfyUI",
+    displayName: "ComfyUI",
+    authMode: "local-endpoint",
+    modelPlaceholder: "comfy/workflow",
+    modelDefault: "comfy/workflow",
+    endpointPlaceholder: "http://127.0.0.1:8188",
+    description: "OpenClaw provider docs: ComfyUI provider（影像工作流，本機 endpoint）。",
+  },
+  {
+    id: "deepgram",
+    shortName: "Deepgram",
+    displayName: "Deepgram",
+    authMode: "api-key",
+    modelPlaceholder: "deepgram/nova-3",
+    modelDefault: "deepgram/nova-3",
+    keyPlaceholder: "DEEPGRAM_API_KEY",
+    description: "OpenClaw provider docs: Deepgram provider（語音辨識）。",
+  },
+  {
     id: "deepseek",
     shortName: "DeepSeek",
     displayName: "DeepSeek",
@@ -240,6 +387,56 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     description: "DeepInfra OpenAI 相容模型。",
   },
   {
+    id: "ds4",
+    shortName: "DS4",
+    displayName: "DS4",
+    authMode: "api-key",
+    modelPlaceholder: "ds4/default",
+    modelDefault: "ds4/default",
+    keyPlaceholder: "DS4_API_KEY",
+    description: "OpenClaw provider docs: DS4 provider。",
+  },
+  {
+    id: "elevenlabs",
+    shortName: "ElevenLabs",
+    displayName: "ElevenLabs",
+    authMode: "api-key",
+    modelPlaceholder: "elevenlabs/voice",
+    modelDefault: "elevenlabs/voice",
+    keyPlaceholder: "ELEVENLABS_API_KEY",
+    description: "OpenClaw provider docs: ElevenLabs provider（語音合成）。",
+  },
+  {
+    id: "fal",
+    shortName: "fal",
+    displayName: "fal.ai",
+    authMode: "api-key",
+    modelPlaceholder: "fal/default",
+    modelDefault: "fal/default",
+    keyPlaceholder: "FAL_KEY",
+    description: "OpenClaw provider docs: fal provider。",
+  },
+  {
+    id: "fireworks",
+    shortName: "Fireworks",
+    displayName: "Fireworks AI",
+    authMode: "api-key",
+    modelPlaceholder: "fireworks/default",
+    modelDefault: "fireworks/default",
+    keyPlaceholder: "FIREWORKS_API_KEY",
+    description: "OpenClaw provider docs: Fireworks model provider。",
+  },
+  {
+    id: "gradium",
+    shortName: "Gradium",
+    displayName: "Gradium",
+    authMode: "api-key",
+    modelPlaceholder: "gradium/default",
+    modelDefault: "gradium/default",
+    keyPlaceholder: "GRADIUM_API_KEY",
+    description: "OpenClaw provider docs: Gradium provider。",
+  },
+  {
     id: "github-copilot",
     shortName: "GitHub Copilot",
     displayName: "GitHub Copilot",
@@ -259,6 +456,57 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     keyPlaceholder: "MINIMAX_API_KEY",
     keyPrefixes: ["sk-", "minimax_"],
     description: "MiniMax 模型服務。",
+  },
+  {
+    id: "glm",
+    shortName: "GLM",
+    displayName: "GLM",
+    authMode: "api-key",
+    modelPlaceholder: "glm/glm-4.7",
+    modelDefault: "glm/glm-4.7",
+    keyPlaceholder: "GLM_API_KEY",
+    description: "OpenClaw provider docs: GLM provider。",
+  },
+  {
+    id: "inferrs",
+    shortName: "Inferrs",
+    displayName: "Inferrs",
+    authMode: "api-key",
+    modelPlaceholder: "inferrs/default",
+    modelDefault: "inferrs/default",
+    keyPlaceholder: "INFERRS_API_KEY",
+    description: "OpenClaw provider docs: Inferrs provider。",
+  },
+  {
+    id: "index",
+    shortName: "Index",
+    displayName: "Index",
+    authMode: "api-key",
+    modelPlaceholder: "index/default",
+    modelDefault: "index/default",
+    keyPlaceholder: "INDEX_API_KEY",
+    description: "OpenClaw provider docs: Index provider。",
+  },
+  {
+    id: "inworld",
+    shortName: "Inworld",
+    displayName: "Inworld",
+    authMode: "api-key",
+    modelPlaceholder: "inworld/default",
+    modelDefault: "inworld/default",
+    keyPlaceholder: "INWORLD_API_KEY",
+    description: "OpenClaw provider docs: Inworld provider。",
+  },
+  {
+    id: "litellm",
+    shortName: "LiteLLM",
+    displayName: "LiteLLM",
+    authMode: "local-endpoint",
+    modelPlaceholder: "openai/gpt-5.5",
+    modelDefault: "openai/gpt-5.5",
+    endpointPlaceholder: "http://127.0.0.1:4000/v1",
+    keyPlaceholder: "LITELLM_API_KEY",
+    description: "OpenClaw provider docs: LiteLLM OpenAI-compatible router。",
   },
   {
     id: "minimax-portal",
@@ -365,6 +613,16 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     modelDefault: "runway/gpt",
     keyPlaceholder: "RUNWAY_API_KEY",
     description: "Runway 模型供應層。",
+  },
+  {
+    id: "senseaudio",
+    shortName: "SenseAudio",
+    displayName: "SenseAudio",
+    authMode: "api-key",
+    modelPlaceholder: "senseaudio/default",
+    modelDefault: "senseaudio/default",
+    keyPlaceholder: "SENSEAUDIO_API_KEY",
+    description: "OpenClaw provider docs: SenseAudio provider（語音能力）。",
   },
   {
     id: "stepfun",
@@ -495,6 +753,16 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     description: "Cerebras API。",
   },
   {
+    id: "microsoft-foundry",
+    shortName: "Microsoft Foundry",
+    displayName: "Microsoft Foundry",
+    authMode: "api-key",
+    modelPlaceholder: "microsoft-foundry/default",
+    modelDefault: "microsoft-foundry/default",
+    keyPlaceholder: "MICROSOFT_FOUNDRY_API_KEY",
+    description: "OpenClaw extension provider: Microsoft Foundry。",
+  },
+  {
     id: "zai",
     shortName: "Z.AI",
     displayName: "Z.AI（GLM）",
@@ -515,6 +783,26 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     description: "Vercel AI Gateway API。",
   },
   {
+    id: "synthetic",
+    shortName: "Synthetic",
+    displayName: "Synthetic",
+    authMode: "api-key",
+    modelPlaceholder: "synthetic/default",
+    modelDefault: "synthetic/default",
+    keyPlaceholder: "SYNTHETIC_API_KEY",
+    description: "OpenClaw provider docs: Synthetic provider。",
+  },
+  {
+    id: "tencent",
+    shortName: "Tencent",
+    displayName: "Tencent Cloud",
+    authMode: "api-key",
+    modelPlaceholder: "tencent/hunyuan",
+    modelDefault: "tencent/hunyuan",
+    keyPlaceholder: "TENCENT_API_KEY",
+    description: "OpenClaw provider docs: Tencent provider。",
+  },
+  {
     id: "huggingface",
     shortName: "Hugging Face",
     displayName: "Hugging Face Inference",
@@ -523,6 +811,16 @@ export const llmProviderCatalog: LlmProviderSpec[] = [
     modelDefault: "deepseek-ai/DeepSeek-R1",
     keyPlaceholder: "HF_TOKEN",
     description: "Hugging Face Inference API。",
+  },
+  {
+    id: "vydra",
+    shortName: "Vydra",
+    displayName: "Vydra",
+    authMode: "api-key",
+    modelPlaceholder: "vydra/default",
+    modelDefault: "vydra/default",
+    keyPlaceholder: "VYDRA_API_KEY",
+    description: "OpenClaw provider docs: Vydra provider。",
   },
   {
     id: "qwen-portal",
@@ -604,6 +902,31 @@ export const defaultProviderSession: ProviderSession = {
   detail: "目前使用本機 mock provider，可驗證桌面端流程。",
 };
 
+export const openAiAuthRoutes: OpenAiAuthRoute[] = [
+  {
+    id: "openai-codex-oauth",
+    label: "ChatGPT / Codex 帳號登入",
+    provider: "openai-codex",
+    modelRef: "openai/gpt-5.5",
+    auth: "oauth",
+    secretStorage: "oauth-profile",
+    desktopPolicy: "桌面端只保存已授權狀態與帳號 Email，不保存密碼、cookie 或 refresh token。",
+  },
+  {
+    id: "openai-api-key",
+    label: "OpenAI API key",
+    provider: "openai",
+    modelRef: "openai/gpt-5.5",
+    auth: "api-key",
+    secretStorage: "api-key-profile",
+    desktopPolicy: "API key 只進本機受控設定流程；診斷、log、UI 不輸出明文。",
+  },
+];
+
+export function providerIdsByAuthMode(authMode: ProviderAuthMode): ProviderId[] {
+  return llmProviderCatalog.filter((provider) => provider.authMode === authMode).map((provider) => provider.id);
+}
+
 export function providerStatusLabel(status: ProviderStatus): string {
   if (status === "connected") return "已連線";
   if (status === "configured") return "已設定";
@@ -620,6 +943,5 @@ export function isProviderId(value: string): value is ProviderId {
 }
 
 export function canonicalProviderForSession(providerId: ProviderId): ProviderId {
-  if (providerId === "openai-codex") return "chatgpt-pro";
   return providerId;
 }

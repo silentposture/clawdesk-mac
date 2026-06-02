@@ -2,18 +2,22 @@ import crypto from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createBackendAdapters, normalizeBackendAdapterMode } from "./adapters/index.mjs";
 import {
+  activateLemonSqueezyLicenseKey,
+  buildLemonSqueezyLicenseApiUrl,
   buildKeygenApiUrl,
   keygenApiRequest,
   validateKeygenLicenseOnline,
+  validateLemonSqueezyLicenseKey,
+  verifyLemonSqueezySignature,
   verifyKeygenLicenseFile,
-  verifyPaddleSignature,
 } from "./adapters/production.mjs";
 
 const completeProductionEnv = {
   CLAWDESK_BACKEND_ADAPTER_MODE: "production",
   CLAWDESK_GATEWAY_BASE_URL: "https://gateway.example.test",
-  PADDLE_API_KEY: "pdl_secret",
-  PADDLE_WEBHOOK_SECRET: "pdl_webhook_secret",
+  LEMON_SQUEEZY_API_KEY: "ls_api_secret",
+  LEMON_SQUEEZY_WEBHOOK_SECRET: "ls_webhook_secret",
+  LEMON_SQUEEZY_STORE_ID: "12345",
   KEYGEN_ACCOUNT_ID: "acct",
   KEYGEN_PRODUCT_ID: "prod",
   KEYGEN_API_TOKEN: "key_prod_secret",
@@ -21,6 +25,10 @@ const completeProductionEnv = {
   KEYGEN_API_BASE_URL: "https://api.keygen.sh",
   CLAWDESK_SSO_ISSUER_URL: "https://issuer.example.test",
   CLAWDESK_SSO_CLIENT_ID: "client",
+  MICROSOFT_GRAPH_TENANT_ID: "common",
+  MICROSOFT_GRAPH_CLIENT_ID: "ms-client-id",
+  MICROSOFT_GRAPH_CLIENT_SECRET: "ms-client-secret",
+  MICROSOFT_GRAPH_REDIRECT_URI: "http://127.0.0.1:19090/mcp/microsoft/oauth/callback",
 };
 
 function createSignedKeygenLicenseFile({ payload, type = "license", keyPair, alg = "base64+ed25519" }) {
@@ -54,7 +62,7 @@ describe("backend adapter registry", () => {
 
     expect(adapters.mode).toBe("production");
     expect(adapters.readiness.ready).toBe(false);
-    expect(adapters.readiness.productionEnv.missing).toContain("PADDLE_API_KEY");
+    expect(adapters.readiness.productionEnv.missing).toContain("LEMON_SQUEEZY_API_KEY");
   });
 
   it("does not expose production secret values in readiness output", () => {
@@ -63,58 +71,73 @@ describe("backend adapter registry", () => {
 
     expect(adapters.mode).toBe("production");
     expect(adapters.readiness.ready).toBe(true);
-    expect(serialized).not.toContain("pdl_secret");
-    expect(serialized).not.toContain("pdl_webhook_secret");
+    expect(serialized).not.toContain("ls_api_secret");
+    expect(serialized).not.toContain("ls_webhook_secret");
     expect(serialized).not.toContain("key_prod_secret");
+    expect(serialized).not.toContain("ms-client-secret");
   });
 
-  it("keeps Paddle and Keygen event mapping identical across adapter modes", () => {
+  it("keeps Lemon Squeezy and Keygen event mapping identical across adapter modes", () => {
     const mock = createBackendAdapters({ env: {} });
     const production = createBackendAdapters({ env: completeProductionEnv });
 
-    expect(mock.paddle.mapWebhookEvent("payment_succeeded")).toEqual(production.paddle.mapWebhookEvent("payment_succeeded"));
+    expect(mock.lemonSqueezy.mapWebhookEvent("order_created")).toEqual(production.lemonSqueezy.mapWebhookEvent("order_created"));
     expect(mock.keygen.mapWebhookEvent("license.revoked")).toEqual(production.keygen.mapWebhookEvent("license.revoked"));
   });
 
-  it("verifies Paddle production webhook signatures without exposing secrets", () => {
-    const rawBody = JSON.stringify({ eventType: "payment_succeeded", licenseKey: "CLWD-PRO-YEARLY-2026-DEV" });
-    const timestamp = 1778614000;
-    const secret = "pdl_webhook_secret";
-    const signature = crypto.createHmac("sha256", secret).update(`${timestamp}:${rawBody}`).digest("hex");
+  it("verifies Lemon Squeezy production webhook signatures without exposing secrets", () => {
+    const rawBody = JSON.stringify({ meta: { event_name: "order_created" }, data: { id: "ord_1" } });
+    const secret = "ls_webhook_secret";
+    const signature = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
 
     expect(
-      verifyPaddleSignature({
+      verifyLemonSqueezySignature({
         rawBody,
-        signatureHeader: `ts=${timestamp};h1=${signature}`,
+        signatureHeader: signature,
         secret,
-        nowSeconds: timestamp,
       }),
     ).toMatchObject({ ok: true, signatureStatus: "valid" });
 
-    const mismatch = verifyPaddleSignature({
+    const mismatch = verifyLemonSqueezySignature({
       rawBody,
-      signatureHeader: `ts=${timestamp};h1=${"0".repeat(64)}`,
+      signatureHeader: "0".repeat(64),
       secret,
-      nowSeconds: timestamp,
     });
-    expect(mismatch).toMatchObject({ ok: false, statusCode: 401, faultCode: "CLWD-PAY-1005" });
+    expect(mismatch).toMatchObject({ ok: false, statusCode: 401, faultCode: "CLWD-PAY-1105" });
     expect(JSON.stringify(mismatch)).not.toContain(secret);
   });
 
-  it("rejects stale Paddle signatures", () => {
-    const rawBody = "{}";
-    const timestamp = 1778614000;
-    const secret = "pdl_webhook_secret";
-    const signature = crypto.createHmac("sha256", secret).update(`${timestamp}:${rawBody}`).digest("hex");
+  it("activates and validates Lemon Squeezy license instances with form encoded License API requests", async () => {
+    const calls = [];
+    const fetchImpl = async (url, options) => {
+      calls.push({ url, options });
+      const body = String(options.body);
+      if (url.endsWith("/v1/licenses/activate")) {
+        expect(body).toContain("license_key=LS-KEY-1");
+        expect(body).toContain("instance_name=ClawDesk");
+        return new Response(JSON.stringify({
+          activated: true,
+          error: null,
+          license_key: { id: 42, status: "active", activation_limit: 3, activation_usage: 1, expires_at: null },
+          instance: { id: "inst_123", name: "ClawDesk" },
+        }), { status: 200 });
+      }
+      expect(url).toBe("https://api.lemonsqueezy.com/v1/licenses/validate");
+      expect(body).toContain("instance_id=inst_123");
+      return new Response(JSON.stringify({
+        valid: true,
+        error: null,
+        license_key: { id: 42, status: "active", activation_limit: 3, activation_usage: 1, expires_at: null },
+        instance: { id: "inst_123" },
+      }), { status: 200 });
+    };
 
-    expect(
-      verifyPaddleSignature({
-        rawBody,
-        signatureHeader: `ts=${timestamp};h1=${signature}`,
-        secret,
-        nowSeconds: timestamp + 301,
-      }),
-    ).toMatchObject({ ok: false, statusCode: 401, faultCode: "CLWD-PAY-1004" });
+    expect(buildLemonSqueezyLicenseApiUrl({ path: "/v1/licenses/activate" })).toBe("https://api.lemonsqueezy.com/v1/licenses/activate");
+    const activated = await activateLemonSqueezyLicenseKey({ fetchImpl, licenseKey: "LS-KEY-1", instanceName: "ClawDesk" });
+    expect(activated).toMatchObject({ ok: true, activated: true, instanceId: "inst_123", status: "active" });
+    const validated = await validateLemonSqueezyLicenseKey({ fetchImpl, licenseKey: "LS-KEY-1", instanceId: "inst_123" });
+    expect(validated).toMatchObject({ ok: true, valid: true, instanceId: "inst_123", status: "active" });
+    expect(calls.every((call) => call.options.headers["Content-Type"] === "application/x-www-form-urlencoded")).toBe(true);
   });
 
   it("verifies Keygen Ed25519 license files and matches machine fingerprints", () => {
